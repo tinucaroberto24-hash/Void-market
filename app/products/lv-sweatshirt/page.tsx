@@ -1,7 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
+
+type CartItem = {
+  id: string;
+  name: string;
+  price: number;
+  size: string;
+  image: string;
+  quantity: number;
+};
+
+const product: CartItem = {
+  id: "lv-sweatshirt",
+  name: "Louis Vuitton LV Sweater",
+  price: 250,
+  size: "S",
+  image: "/lv/front.jpeg",
+  quantity: 1,
+};
 
 export default function ProductPage() {
   const images = ["/lv/front.jpeg", "/lv/back.jpeg"];
@@ -9,6 +27,45 @@ export default function ProductPage() {
   const [selectedImage, setSelectedImage] = useState(images[0]);
   const [favorite, setFavorite] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    const savedCart = localStorage.getItem("void-market-cart");
+
+    if (!savedCart) return;
+
+    try {
+      const parsedCart: CartItem[] = JSON.parse(savedCart);
+      setCart(parsedCart);
+    } catch {
+      localStorage.removeItem("void-market-cart");
+    }
+  }, []);
+
+  function saveCart(items: CartItem[]) {
+    setCart(items);
+    localStorage.setItem("void-market-cart", JSON.stringify(items));
+    window.dispatchEvent(new Event("cart-updated"));
+  }
+
+  function addToCart() {
+    const existingItem = cart.find((item) => item.id === product.id);
+
+    if (!existingItem) {
+      saveCart([...cart, product]);
+    }
+
+    setCartOpen(true);
+  }
+
+  function removeFromCart() {
+    saveCart(cart.filter((item) => item.id !== product.id));
+  }
+
+  const cartItem = cart.find((item) => item.id === product.id);
+  const subtotal = cartItem ? product.price : 0;
+  const transport = cartItem ? 20 : 0;
+  const total = subtotal + transport;
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -75,7 +132,7 @@ export default function ProductPage() {
                 </p>
 
                 <p className="text-sm text-zinc-500">
-                  Expediere în 24–48 ore
+                  Un singur produs disponibil
                 </p>
               </div>
             </div>
@@ -105,10 +162,10 @@ export default function ProductPage() {
             <div className="mt-10 flex gap-4">
               <button
                 type="button"
-                onClick={() => setCartOpen(true)}
+                onClick={addToCart}
                 className="flex-1 rounded-2xl bg-white py-4 text-lg font-bold text-black transition hover:bg-zinc-200"
               >
-                Adaugă în coș
+                {cartItem ? "Produsul este în coș" : "Adaugă în coș"}
               </button>
 
               <button
@@ -125,13 +182,11 @@ export default function ProductPage() {
               </button>
             </div>
 
-            {/* TOTAL */}
             <div className="mt-10 border-t border-zinc-800 pt-8">
               <div className="flex justify-between py-3">
                 <span className="text-zinc-500">
                   Transport
                 </span>
-
                 <span>20 Lei</span>
               </div>
 
@@ -139,7 +194,6 @@ export default function ProductPage() {
                 <span className="text-zinc-500">
                   Expediere
                 </span>
-
                 <span>24–48 ore</span>
               </div>
 
@@ -203,61 +257,91 @@ export default function ProductPage() {
               </button>
             </div>
 
-            <div className="mt-6 flex gap-4 border-b border-zinc-800 pb-6">
-              <img
-                src="/lv/front.jpeg"
-                alt="Louis Vuitton LV Sweater"
-                className="h-28 w-28 rounded-2xl bg-zinc-900 object-contain"
-              />
+            {cartItem ? (
+              <>
+                <div className="mt-6 flex gap-4 border-b border-zinc-800 pb-6">
+                  <img
+                    src={cartItem.image}
+                    alt={cartItem.name}
+                    className="h-28 w-28 rounded-2xl bg-zinc-900 object-contain"
+                  />
 
-              <div className="flex-1">
-                <h3 className="font-bold">
-                  Louis Vuitton LV Sweater
-                </h3>
+                  <div className="flex-1">
+                    <h3 className="font-bold">
+                      {cartItem.name}
+                    </h3>
 
-                <p className="mt-2 text-sm text-zinc-400">
-                  Mărime: S
+                    <p className="mt-2 text-sm text-zinc-400">
+                      Mărime: {cartItem.size}
+                    </p>
+
+                    <p className="mt-3 text-xl font-bold">
+                      {cartItem.price} Lei
+                    </p>
+
+                    <p className="mt-4 text-sm text-zinc-400">
+                      Cantitate: 1
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={removeFromCart}
+                      className="mt-4 text-sm text-zinc-500 underline transition hover:text-white"
+                    >
+                      Șterge produsul
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <div className="flex justify-between text-zinc-400">
+                    <span>Subtotal</span>
+                    <span>{subtotal} Lei</span>
+                  </div>
+
+                  <div className="flex justify-between text-zinc-400">
+                    <span>Transport</span>
+                    <span>{transport} Lei</span>
+                  </div>
+
+                  <div className="flex justify-between border-t border-zinc-800 pt-5 text-2xl font-bold">
+                    <span>Total</span>
+                    <span>{total} Lei</span>
+                  </div>
+                </div>
+
+                <div className="mt-auto pt-8">
+                  <button
+                    type="button"
+                    className="w-full rounded-2xl bg-white py-4 text-lg font-bold text-black transition hover:bg-zinc-200"
+                  >
+                    Continuă spre comandă
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCartOpen(false)}
+                    className="mt-3 w-full rounded-2xl border border-zinc-700 py-4 font-semibold transition hover:border-white"
+                  >
+                    Continuă cumpărăturile
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center text-center">
+                <p className="text-2xl font-bold">
+                  Coșul este gol
                 </p>
 
-                <p className="mt-4 text-xl font-bold">
-                  250 Lei
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setCartOpen(false)}
+                  className="mt-6 rounded-xl bg-white px-6 py-3 font-bold text-black"
+                >
+                  Continuă cumpărăturile
+                </button>
               </div>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <div className="flex justify-between text-zinc-400">
-                <span>Subtotal</span>
-                <span>250 Lei</span>
-              </div>
-
-              <div className="flex justify-between text-zinc-400">
-                <span>Transport</span>
-                <span>20 Lei</span>
-              </div>
-
-              <div className="flex justify-between border-t border-zinc-800 pt-5 text-2xl font-bold">
-                <span>Total</span>
-                <span>270 Lei</span>
-              </div>
-            </div>
-
-            <div className="mt-auto pt-8">
-              <button
-                type="button"
-                className="w-full rounded-2xl bg-white py-4 text-lg font-bold text-black transition hover:bg-zinc-200"
-              >
-                Continuă spre comandă
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setCartOpen(false)}
-                className="mt-3 w-full rounded-2xl border border-zinc-700 py-4 font-semibold transition hover:border-white"
-              >
-                Continuă cumpărăturile
-              </button>
-            </div>
+            )}
           </aside>
         </div>
       )}
