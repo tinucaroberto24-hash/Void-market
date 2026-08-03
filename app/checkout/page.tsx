@@ -46,9 +46,15 @@ const initialForm: CheckoutForm = {
 };
 
 const countiesAndCities: Record<string, string[]> = {
-  Alba: ["Alba Iulia", "Aiud", "Blaj", "Sebeș", "Cugir", "Ocna Mureș"],
-  Arad: ["Arad", "Ineu", "Lipova", "Nădlac", "Pecica", "Chișineu-Criș"],
-  Argeș: ["Pitești", "Câmpulung", "Curtea de Argeș", "Mioveni", "Topoloveni"],
+  Alba: ["Alba Iulia", "Aiud", "Blaj", "Sebeș", "Cugir"],
+  Arad: ["Arad", "Ineu", "Lipova", "Nădlac", "Pecica"],
+  Argeș: [
+    "Pitești",
+    "Câmpulung",
+    "Curtea de Argeș",
+    "Mioveni",
+    "Topoloveni",
+  ],
   Bacău: [
     "Bacău",
     "Onești",
@@ -59,9 +65,20 @@ const countiesAndCities: Record<string, string[]> = {
     "Târgu Ocna",
     "Slănic Moldova",
   ],
-  Bihor: ["Oradea", "Beiuș", "Marghita", "Salonta", "Aleșd", "Ștei"],
-  "Bistrița-Năsăud": ["Bistrița", "Beclean", "Năsăud", "Sângeorz-Băi"],
-  Botoșani: ["Botoșani", "Dorohoi", "Darabani", "Săveni", "Flămânzi"],
+  Bihor: ["Oradea", "Beiuș", "Marghita", "Salonta", "Aleșd"],
+  "Bistrița-Năsăud": [
+    "Bistrița",
+    "Beclean",
+    "Năsăud",
+    "Sângeorz-Băi",
+  ],
+  Botoșani: [
+    "Botoșani",
+    "Dorohoi",
+    "Darabani",
+    "Săveni",
+    "Flămânzi",
+  ],
   Brașov: [
     "Brașov",
     "Făgăraș",
@@ -69,7 +86,6 @@ const countiesAndCities: Record<string, string[]> = {
     "Codlea",
     "Râșnov",
     "Zărnești",
-    "Victoria",
   ],
   Brăila: ["Brăila", "Ianca", "Însurăței", "Făurei"],
   București: [
@@ -80,7 +96,13 @@ const countiesAndCities: Record<string, string[]> = {
     "Sector 5",
     "Sector 6",
   ],
-  Buzău: ["Buzău", "Râmnicu Sărat", "Nehoiu", "Pătârlagele", "Pogoanele"],
+  Buzău: [
+    "Buzău",
+    "Râmnicu Sărat",
+    "Nehoiu",
+    "Pătârlagele",
+    "Pogoanele",
+  ],
   "Caraș-Severin": [
     "Reșița",
     "Caransebeș",
@@ -89,7 +111,13 @@ const countiesAndCities: Record<string, string[]> = {
     "Moldova Nouă",
     "Băile Herculane",
   ],
-  Călărași: ["Călărași", "Oltenița", "Lehliu Gară", "Budești", "Fundulea"],
+  Călărași: [
+    "Călărași",
+    "Oltenița",
+    "Lehliu Gară",
+    "Budești",
+    "Fundulea",
+  ],
   Cluj: [
     "Cluj-Napoca",
     "Turda",
@@ -107,7 +135,12 @@ const countiesAndCities: Record<string, string[]> = {
     "Ovidiu",
     "Eforie",
   ],
-  Covasna: ["Sfântu Gheorghe", "Târgu Secuiesc", "Covasna", "Baraolt"],
+  Covasna: [
+    "Sfântu Gheorghe",
+    "Târgu Secuiesc",
+    "Covasna",
+    "Baraolt",
+  ],
   Dâmbovița: [
     "Târgoviște",
     "Moreni",
@@ -116,7 +149,14 @@ const countiesAndCities: Record<string, string[]> = {
     "Titu",
     "Fieni",
   ],
-  Dolj: ["Craiova", "Băilești", "Calafat", "Filiași", "Segarcea", "Dăbuleni"],
+  Dolj: [
+    "Craiova",
+    "Băilești",
+    "Calafat",
+    "Filiași",
+    "Segarcea",
+    "Dăbuleni",
+  ],
   Galați: ["Galați", "Tecuci", "Târgu Bujor", "Berești"],
   Giurgiu: ["Giurgiu", "Bolintin-Vale", "Mihăilești"],
   Gorj: [
@@ -125,7 +165,6 @@ const countiesAndCities: Record<string, string[]> = {
     "Rovinari",
     "Bumbești-Jiu",
     "Târgu Cărbunești",
-    "Țicleni",
   ],
   Harghita: [
     "Miercurea Ciuc",
@@ -143,7 +182,13 @@ const countiesAndCities: Record<string, string[]> = {
     "Lupeni",
     "Vulcan",
   ],
-  Ialomița: ["Slobozia", "Fetești", "Urziceni", "Țăndărei", "Amara"],
+  Ialomița: [
+    "Slobozia",
+    "Fetești",
+    "Urziceni",
+    "Țăndărei",
+    "Amara",
+  ],
   Iași: [
     "Iași",
     "Pașcani",
@@ -159,7 +204,6 @@ const countiesAndCities: Record<string, string[]> = {
     "Buftea",
     "Chitila",
     "Bragadiru",
-    "Măgurele",
   ],
   Maramureș: [
     "Baia Mare",
@@ -167,7 +211,6 @@ const countiesAndCities: Record<string, string[]> = {
     "Borșa",
     "Vișeu de Sus",
     "Târgu Lăpuș",
-    "Baia Sprie",
   ],
   Mehedinți: [
     "Drobeta-Turnu Severin",
@@ -191,7 +234,14 @@ const countiesAndCities: Record<string, string[]> = {
     "Bicaz",
     "Roznov",
   ],
-  Olt: ["Slatina", "Caracal", "Balș", "Corabia", "Drăgănești-Olt", "Scornicești"],
+  Olt: [
+    "Slatina",
+    "Caracal",
+    "Balș",
+    "Corabia",
+    "Drăgănești-Olt",
+    "Scornicești",
+  ],
   Prahova: [
     "Ploiești",
     "Câmpina",
@@ -201,8 +251,19 @@ const countiesAndCities: Record<string, string[]> = {
     "Mizil",
     "Vălenii de Munte",
   ],
-  Sălaj: ["Zalău", "Șimleu Silvaniei", "Jibou", "Cehu Silvaniei"],
-  "Satu Mare": ["Satu Mare", "Carei", "Negrești-Oaș", "Tășnad", "Ardud"],
+  Sălaj: [
+    "Zalău",
+    "Șimleu Silvaniei",
+    "Jibou",
+    "Cehu Silvaniei",
+  ],
+  "Satu Mare": [
+    "Satu Mare",
+    "Carei",
+    "Negrești-Oaș",
+    "Tășnad",
+    "Ardud",
+  ],
   Sibiu: [
     "Sibiu",
     "Mediaș",
@@ -258,6 +319,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [sending, setSending] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     const savedCart = localStorage.getItem("void-market-cart");
@@ -290,7 +352,66 @@ export default function CheckoutPage() {
       county,
       city: "",
       otherCity: "",
+      easyboxLocation: "",
     }));
+  }
+
+  function openNearbyEasybox() {
+    setError("");
+
+    if (!navigator.geolocation) {
+      setError("Browserul nu poate detecta locația.");
+      return;
+    }
+
+    setLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        const query = `easybox ${latitude},${longitude}`;
+        const mapsUrl =
+          "https://www.google.com/maps/search/?api=1&query=" +
+          encodeURIComponent(query);
+
+        window.open(mapsUrl, "_blank", "noopener,noreferrer");
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+        setError(
+          "Nu am putut folosi locația. Permite accesul la locație în browser și încearcă din nou."
+        );
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  }
+
+  function openEasyboxForSelectedCity() {
+    setError("");
+
+    const city =
+      form.city === "Altă localitate"
+        ? form.otherCity.trim()
+        : form.city.trim();
+
+    if (!city || !form.county) {
+      setError("Alege județul și localitatea înainte.");
+      return;
+    }
+
+    const query = `easybox ${city} ${form.county}`;
+    const mapsUrl =
+      "https://www.google.com/maps/search/?api=1&query=" +
+      encodeURIComponent(query);
+
+    window.open(mapsUrl, "_blank", "noopener,noreferrer");
   }
 
   const availableCities = form.county
@@ -337,7 +458,10 @@ export default function CheckoutPage() {
       return "Alege orașul sau localitatea.";
     }
 
-    if (form.city === "Altă localitate" && !form.otherCity.trim()) {
+    if (
+      form.city === "Altă localitate" &&
+      !form.otherCity.trim()
+    ) {
       return "Scrie numele localității.";
     }
 
@@ -345,7 +469,7 @@ export default function CheckoutPage() {
       form.deliveryMethod === "easybox" &&
       !form.easyboxLocation.trim()
     ) {
-      return "Completează locația Easybox.";
+      return "Scrie Easybox-ul ales.";
     }
 
     if (
@@ -392,7 +516,7 @@ Preț: ${item.price} Lei`
     const deliveryDetails =
       form.deliveryMethod === "easybox"
         ? `Easybox
-Locație Easybox: ${form.easyboxLocation}`
+Easybox ales: ${form.easyboxLocation}`
         : `FAN Courier
 Adresă: ${form.address}
 Cod poștal: ${form.postalCode || "Necompletat"}`;
@@ -470,7 +594,8 @@ ${form.notes || "Fără observații"}
 
       if (!response.ok || !result.success) {
         throw new Error(
-          result.message || "Comanda nu a putut fi trimisă."
+          result.message ||
+            "Comanda nu a putut fi trimisă."
         );
       }
 
@@ -502,7 +627,9 @@ ${form.notes || "Fără observații"}
         <Navbar />
 
         <div className="flex min-h-[70vh] items-center justify-center">
-          <p className="text-zinc-500">Se încarcă...</p>
+          <p className="text-zinc-500">
+            Se încarcă...
+          </p>
         </div>
       </main>
     );
@@ -528,8 +655,8 @@ ${form.notes || "Fără observații"}
             </h1>
 
             <p className="mx-auto mt-6 max-w-xl leading-7 text-zinc-400">
-              Am primit datele comenzii. Te vom contacta pentru
-              confirmare și pentru detaliile livrării.
+              Am primit datele comenzii. Te vom contacta
+              pentru confirmare și livrare.
             </p>
 
             <Link
@@ -556,7 +683,7 @@ ${form.notes || "Fără observații"}
             </h1>
 
             <p className="mt-4 text-zinc-500">
-              Adaugă un produs în coș înainte să continui.
+              Adaugă un produs înainte să continui.
             </p>
 
             <Link
@@ -652,16 +779,11 @@ ${form.notes || "Fără observații"}
 
                       updateField("phone", value);
                     }}
-                    autoComplete="tel"
                     inputMode="tel"
+                    autoComplete="tel"
                     placeholder="+40 712345678"
                     className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
                   />
-
-                  <p className="mt-2 text-xs text-zinc-600">
-                    Poți folosi și un prefix internațional, de exemplu
-                    +40 sau +44.
-                  </p>
                 </label>
 
                 <label className="block">
@@ -713,7 +835,9 @@ ${form.notes || "Fără observații"}
                     />
 
                     <div>
-                      <p className="font-semibold">Easybox</p>
+                      <p className="font-semibold">
+                        Easybox
+                      </p>
                       <p className="mt-1 text-sm text-zinc-500">
                         Ridicare din locker.
                       </p>
@@ -734,7 +858,10 @@ ${form.notes || "Fără observații"}
                       name="delivery"
                       checked={form.deliveryMethod === "fan"}
                       onChange={() =>
-                        updateField("deliveryMethod", "fan")
+                        updateField(
+                          "deliveryMethod",
+                          "fan"
+                        )
                       }
                     />
 
@@ -751,7 +878,7 @@ ${form.notes || "Fără observații"}
               </div>
             </section>
 
-            {/* DATE PENTRU LIVRARE */}
+            {/* DATE DE LIVRARE */}
             <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 md:p-8">
               <h2 className="text-2xl font-bold">
                 Date pentru livrare
@@ -770,7 +897,9 @@ ${form.notes || "Fără observații"}
                     }
                     className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
                   >
-                    <option value="">Alege județul</option>
+                    <option value="">
+                      Alege județul
+                    </option>
 
                     {Object.keys(countiesAndCities).map(
                       (county) => (
@@ -830,35 +959,59 @@ ${form.notes || "Fără observații"}
                           event.target.value
                         )
                       }
-                      placeholder="Numele comunei, satului sau orașului"
                       className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
                     />
                   </label>
                 )}
 
                 {form.deliveryMethod === "easybox" ? (
-                  <label className="block md:col-span-2">
-                    <span className="mb-2 block text-sm text-zinc-400">
-                      Locația Easybox dorită *
-                    </span>
+                  <div className="md:col-span-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={openNearbyEasybox}
+                        disabled={locating}
+                        className="rounded-xl bg-white px-5 py-4 font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {locating
+                          ? "Se caută locația..."
+                          : "📍 Easybox lângă mine"}
+                      </button>
 
-                    <input
-                      type="text"
-                      value={form.easyboxLocation}
-                      onChange={(event) =>
-                        updateField(
-                          "easyboxLocation",
-                          event.target.value
-                        )
-                      }
-                      placeholder="Exemplu: Easybox Kaufland Bacău"
-                      className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
-                    />
+                      <button
+                        type="button"
+                        onClick={openEasyboxForSelectedCity}
+                        className="rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-4 font-semibold transition hover:border-white"
+                      >
+                        Caută în localitatea aleasă
+                      </button>
+                    </div>
 
-                    <p className="mt-2 text-xs text-zinc-600">
-                      Scrie numele sau adresa Easybox-ului.
+                    <p className="mt-3 text-sm leading-6 text-zinc-500">
+                      Se deschide Google Maps. Alege lockerul
+                      dorit, apoi scrie numele sau adresa lui
+                      în câmpul de mai jos.
                     </p>
-                  </label>
+
+                    <label className="mt-5 block">
+                      <span className="mb-2 block text-sm text-zinc-400">
+                        Easybox ales *
+                      </span>
+
+                      <input
+                        type="text"
+                        value={form.easyboxLocation}
+                        onChange={(event) =>
+                          updateField(
+                            "easyboxLocation",
+                            event.target.value
+                          )
+                        }
+                        placeholder="Exemplu: easybox Kaufland Bacău"
+                        className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                      />
+                    </label>
+                  </div>
                 ) : (
                   <>
                     <label className="block md:col-span-2">
@@ -908,7 +1061,7 @@ ${form.notes || "Fără observații"}
               </div>
             </section>
 
-            {/* METODA DE PLATĂ */}
+            {/* PLATĂ */}
             <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 md:p-8">
               <h2 className="text-2xl font-bold">
                 Metoda de plată
@@ -918,7 +1071,9 @@ ${form.notes || "Fără observații"}
                 <input type="radio" checked readOnly />
 
                 <div>
-                  <p className="font-semibold">Ramburs</p>
+                  <p className="font-semibold">
+                    Ramburs
+                  </p>
                   <p className="text-sm text-zinc-500">
                     Plătești când primești coletul.
                   </p>
@@ -944,7 +1099,7 @@ ${form.notes || "Fără observații"}
             </section>
           </div>
 
-          {/* SUMAR COMANDĂ */}
+          {/* SUMAR */}
           <aside className="h-fit rounded-3xl border border-zinc-800 bg-zinc-950 p-6 lg:sticky lg:top-28">
             <h2 className="text-2xl font-bold">
               Sumar comandă
@@ -1005,12 +1160,14 @@ ${form.notes || "Fără observații"}
               disabled={sending}
               className="mt-8 w-full rounded-2xl bg-white py-4 text-lg font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {sending ? "Se trimite..." : "Plasează comanda"}
+              {sending
+                ? "Se trimite..."
+                : "Plasează comanda"}
             </button>
 
             <p className="mt-4 text-center text-xs leading-5 text-zinc-600">
-              După trimitere, comanda ajunge automat la VOID
-              MARKET.
+              După trimitere, comanda ajunge automat la
+              VOID MARKET.
             </p>
 
             <Link
