@@ -15,7 +15,7 @@ export default function Home() {
     <main className="min-h-screen bg-black text-white">
       <Navbar />
 
-      {/* PAGINA PRINCIPALĂ */}
+      {/* ACASĂ */}
       <section className="flex min-h-[80vh] flex-col items-center justify-center px-6 text-center">
         <p className="mb-5 text-sm uppercase tracking-[0.5em] text-zinc-500">
           Streetwear Resell
@@ -44,9 +44,7 @@ export default function Home() {
               Disponibil acum
             </p>
 
-            <h2 className="mt-3 text-4xl font-bold">
-              Magazin
-            </h2>
+            <h2 className="mt-3 text-4xl font-bold">Magazin</h2>
           </div>
 
           <p className="text-zinc-500">
@@ -78,12 +76,12 @@ export default function Home() {
                   Mărime {product.size}
                 </p>
 
-                <div className="mt-6 flex items-center justify-between">
+                <div className="mt-6 flex items-center justify-between gap-4">
                   <span className="text-2xl font-bold">
                     {product.price}
                   </span>
 
-                  <span className="rounded-xl bg-white px-5 py-2 font-bold text-black">
+                  <span className="rounded-xl bg-white px-5 py-2 text-center font-bold text-black">
                     Vezi produsul
                   </span>
                 </div>
@@ -121,10 +119,7 @@ export default function Home() {
               </p>
 
               <div className="mt-7">
-                <p className="font-semibold">
-                  Andrei Popescu
-                </p>
-
+                <p className="font-semibold">Andrei Popescu</p>
                 <p className="mt-1 text-sm text-zinc-500">
                   București
                 </p>
@@ -142,10 +137,7 @@ export default function Home() {
               </p>
 
               <div className="mt-7">
-                <p className="font-semibold">
-                  Bianca Ionescu
-                </p>
-
+                <p className="font-semibold">Bianca Ionescu</p>
                 <p className="mt-1 text-sm text-zinc-500">
                   Cluj-Napoca
                 </p>
@@ -163,10 +155,7 @@ export default function Home() {
               </p>
 
               <div className="mt-7">
-                <p className="font-semibold">
-                  Mihai Dumitrescu
-                </p>
-
+                <p className="font-semibold">Mihai Dumitrescu</p>
                 <p className="mt-1 text-sm text-zinc-500">
                   Iași
                 </p>
@@ -186,9 +175,7 @@ export default function Home() {
             Ai nevoie de ajutor?
           </p>
 
-          <h2 className="mt-3 text-4xl font-bold">
-            Contact
-          </h2>
+          <h2 className="mt-3 text-4xl font-bold">Contact</h2>
 
           <p className="mx-auto mt-6 max-w-2xl text-zinc-400">
             Pentru întrebări despre produse, livrare sau comenzi, ne poți
@@ -201,16 +188,14 @@ export default function Home() {
             </p>
 
             <a
-              href="mailto:tinucaroberto24@gmail.com"
+              href="mailto:voidmarket.ro@gmail.com"
               className="mt-4 block break-all text-xl font-bold transition hover:text-zinc-300"
             >
-              tinucaroberto24@gmail.com
+              voidmarket.ro@gmail.com
             </a>
 
             <a
-              href="https://mail.google.com/mail/?view=cm&fs=1&to=tinucaroberto24@gmail.com"
-              target="_blank"
-              rel="noreferrer"
+              href="mailto:voidmarket.ro@gmail.com?subject=Întrebare VOID MARKET"
               className="mt-8 inline-block rounded-xl bg-white px-8 py-4 font-bold text-black transition hover:scale-105 hover:bg-zinc-200"
             >
               TRIMITE MESAJ
