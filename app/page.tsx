@@ -5,17 +5,20 @@ export default function Home() {
     {
       name: "Nike Dunk Low Panda",
       price: "950 RON",
-      image: "https://images.stockx.com/images/Nike-Dunk-Low-Retro-White-Black-2021.jpg",
+      image:
+        "https://images.stockx.com/images/Nike-Dunk-Low-Retro-White-Black-2021.jpg",
     },
     {
-      name: "Jordan 4 Military Black",
+      name: "Air Jordan 4 Military Black",
       price: "1.850 RON",
-      image: "https://images.stockx.com/images/Air-Jordan-4-Retro-Military-Black.jpg",
+      image:
+        "https://images.stockx.com/images/Air-Jordan-4-Retro-Military-Black.jpg",
     },
     {
-      name: "Essentials Hoodie",
+      name: "Fear Of God Essentials Hoodie",
       price: "780 RON",
-      image: "https://images.stockx.com/images/Fear-of-God-Essentials-Hoodie.jpg",
+      image:
+        "https://images.stockx.com/images/Fear-of-God-Essentials-Hoodie.jpg",
     },
   ];
 
@@ -24,16 +27,12 @@ export default function Home() {
       <Navbar />
 
       {/* HERO */}
-      <section className="flex flex-col items-center justify-center h-[85vh] text-center px-6">
-        <h1 className="text-7xl font-black tracking-[0.35em]">
+      <section className="flex flex-col justify-center items-center text-center h-[85vh] px-6">
+        <h1 className="text-7xl md:text-8xl font-black tracking-[0.3em]">
           VOID MARKET
         </h1>
 
-        <p className="text-zinc-400 mt-6 max-w-xl text-xl">
-          Marketplace premium pentru sneakers, haine și accesorii 100% autentice.
-        </p>
-
-        <button className="mt-10 px-10 py-4 rounded-xl bg-white text-black font-bold hover:scale-105 transition">
+        <button className="mt-10 bg-white text-black px-8 py-4 rounded-xl font-bold hover:scale-105 transition">
           Vezi Produsele
         </button>
       </section>
@@ -41,34 +40,34 @@ export default function Home() {
       {/* PRODUSE */}
       <section
         id="magazin"
-        className="max-w-7xl mx-auto px-10 py-20"
+        className="max-w-7xl mx-auto px-8 py-20"
       >
         <h2 className="text-4xl font-bold mb-12">
           Produse Populare
         </h2>
 
-        <div className="grid md:grid-cols-3 gap-10">
-          {products.map((item) => (
+        <div className="grid md:grid-cols-3 gap-8">
+          {products.map((product) => (
             <div
-              key={item.name}
-              className="bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 hover:border-white transition"
+              key={product.name}
+              className="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 hover:border-white transition duration-300"
             >
               <img
-                src={item.image}
-                alt={item.name}
+                src={product.image}
+                alt={product.name}
                 className="w-full h-80 object-cover"
               />
 
               <div className="p-6">
                 <h3 className="text-2xl font-bold">
-                  {item.name}
+                  {product.name}
                 </h3>
 
                 <p className="text-zinc-400 mt-2">
-                  {item.price}
+                  {product.price}
                 </p>
 
-                <button className="w-full mt-6 bg-white text-black py-3 rounded-xl font-bold hover:scale-105 transition">
+                <button className="mt-6 w-full bg-white text-black py-3 rounded-xl font-bold hover:bg-zinc-200 transition">
                   Adaugă în coș
                 </button>
               </div>
@@ -80,65 +79,135 @@ export default function Home() {
       {/* RECENZII */}
       <section
         id="recenzii"
-        className="bg-zinc-950 py-24 px-10"
+        className="bg-zinc-950 py-24 px-8"
       >
         <h2 className="text-4xl font-bold text-center mb-14">
           Recenzii
         </h2>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <div className="bg-zinc-900 p-8 rounded-2xl">
-            ⭐⭐⭐⭐⭐
+
+          <div className="bg-zinc-900 rounded-2xl p-8">
+            <div className="text-yellow-400 text-xl">
+              ★★★★★
+            </div>
+
             <p className="mt-5 text-zinc-300">
-              "Livrare rapidă și produs original. Recomand!"
+              Am comandat o pereche de Jordan 4 și au ajuns în două zile.
+              Totul a fost exact ca în poze.
             </p>
-            <h4 className="mt-5 font-bold">
-              Andrei
-            </h4>
+
+            <div className="mt-6">
+              <h4 className="font-semibold">
+                Andrei Popescu
+              </h4>
+
+              <p className="text-zinc-500 text-sm">
+                București
+              </p>
+            </div>
           </div>
 
-          <div className="bg-zinc-900 p-8 rounded-2xl">
-            ⭐⭐⭐⭐⭐
+          <div className="bg-zinc-900 rounded-2xl p-8">
+            <div className="text-yellow-400 text-xl">
+              ★★★★★
+            </div>
+
             <p className="mt-5 text-zinc-300">
-              "Cel mai bun site de resell pe care l-am folosit."
+              Produse originale și comunicare foarte bună.
+              Recomand fără probleme.
             </p>
-            <h4 className="mt-5 font-bold">
-              Robert
-            </h4>
+
+            <div className="mt-6">
+              <h4 className="font-semibold">
+                Bianca Ionescu
+              </h4>
+
+              <p className="text-zinc-500 text-sm">
+                Cluj-Napoca
+              </p>
+            </div>
           </div>
 
-          <div className="bg-zinc-900 p-8 rounded-2xl">
-            ⭐⭐⭐⭐⭐
+          <div className="bg-zinc-900 rounded-2xl p-8">
+            <div className="text-yellow-400 text-xl">
+              ★★★★★
+            </div>
+
             <p className="mt-5 text-zinc-300">
-              "Prețuri foarte bune și suport excelent."
+              Am cumpărat un hoodie Essentials.
+              Livrare rapidă și produs impecabil.
             </p>
-            <h4 className="mt-5 font-bold">
-              Alex
-            </h4>
+
+            <div className="mt-6">
+              <h4 className="font-semibold">
+                Mihai Dumitrescu
+              </h4>
+
+              <p className="text-zinc-500 text-sm">
+                Iași
+              </p>
+            </div>
           </div>
+
         </div>
       </section>
 
       {/* CONTACT */}
       <section
         id="contact"
-        className="py-24 text-center"
+        className="py-24 px-8"
       >
-        <h2 className="text-4xl font-bold">
-          Contact
-        </h2>
+        <div className="max-w-4xl mx-auto text-center">
 
-        <p className="text-zinc-400 mt-6">
-          Email: contact@voidmarket.ro
-        </p>
+          <h2 className="text-4xl font-bold">
+            Contact
+          </h2>
 
-        <p className="text-zinc-500 mt-3">
-          Răspundem în mai puțin de 24 de ore.
-        </p>
+          <p className="text-zinc-400 mt-6">
+            Pentru întrebări despre produse sau comenzi ne poți contacta oricând.
+          </p>
+
+          <div className="mt-12 grid md:grid-cols-3 gap-8">
+
+            <div className="bg-zinc-900 rounded-2xl p-8">
+              <h3 className="font-bold text-xl">
+                Email
+              </h3>
+
+              <p className="text-zinc-400 mt-3">
+                contact@voidmarket.ro
+              </p>
+            </div>
+
+            <div className="bg-zinc-900 rounded-2xl p-8">
+              <h3 className="font-bold text-xl">
+                Telefon
+              </h3>
+
+              <p className="text-zinc-400 mt-3">
+                +40 700 000 000
+              </p>
+            </div>
+
+            <div className="bg-zinc-900 rounded-2xl p-8">
+              <h3 className="font-bold text-xl">
+                Program
+              </h3>
+
+              <p className="text-zinc-400 mt-3">
+                Luni - Vineri
+                <br />
+                09:00 - 18:00
+              </p>
+            </div>
+
+          </div>
+        </div>
       </section>
 
       <footer className="border-t border-zinc-800 py-8 text-center text-zinc-500">
-        © 2026 VOID MARKET. Toate drepturile rezervate.
+        © 2026 VOID MARKET
       </footer>
     </main>
   );
