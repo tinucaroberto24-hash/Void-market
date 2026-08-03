@@ -22,6 +22,7 @@ type CheckoutForm = {
   email: string;
   county: string;
   city: string;
+  otherCity: string;
   address: string;
   postalCode: string;
   easyboxLocation: string;
@@ -36,6 +37,7 @@ const initialForm: CheckoutForm = {
   email: "",
   county: "",
   city: "",
+  otherCity: "",
   address: "",
   postalCode: "",
   easyboxLocation: "",
@@ -43,8 +45,211 @@ const initialForm: CheckoutForm = {
   deliveryMethod: "easybox",
 };
 
+const countiesAndCities: Record<string, string[]> = {
+  Alba: ["Alba Iulia", "Aiud", "Blaj", "Sebeș", "Cugir", "Ocna Mureș"],
+  Arad: ["Arad", "Ineu", "Lipova", "Nădlac", "Pecica", "Chișineu-Criș"],
+  Argeș: ["Pitești", "Câmpulung", "Curtea de Argeș", "Mioveni", "Topoloveni"],
+  Bacău: [
+    "Bacău",
+    "Onești",
+    "Moinești",
+    "Comănești",
+    "Buhuși",
+    "Dărmănești",
+    "Târgu Ocna",
+    "Slănic Moldova",
+  ],
+  Bihor: ["Oradea", "Beiuș", "Marghita", "Salonta", "Aleșd", "Ștei"],
+  "Bistrița-Năsăud": ["Bistrița", "Beclean", "Năsăud", "Sângeorz-Băi"],
+  Botoșani: ["Botoșani", "Dorohoi", "Darabani", "Săveni", "Flămânzi"],
+  Brașov: [
+    "Brașov",
+    "Făgăraș",
+    "Săcele",
+    "Codlea",
+    "Râșnov",
+    "Zărnești",
+    "Victoria",
+  ],
+  Brăila: ["Brăila", "Ianca", "Însurăței", "Făurei"],
+  București: [
+    "Sector 1",
+    "Sector 2",
+    "Sector 3",
+    "Sector 4",
+    "Sector 5",
+    "Sector 6",
+  ],
+  Buzău: ["Buzău", "Râmnicu Sărat", "Nehoiu", "Pătârlagele", "Pogoanele"],
+  "Caraș-Severin": [
+    "Reșița",
+    "Caransebeș",
+    "Bocșa",
+    "Oravița",
+    "Moldova Nouă",
+    "Băile Herculane",
+  ],
+  Călărași: ["Călărași", "Oltenița", "Lehliu Gară", "Budești", "Fundulea"],
+  Cluj: [
+    "Cluj-Napoca",
+    "Turda",
+    "Dej",
+    "Câmpia Turzii",
+    "Gherla",
+    "Huedin",
+  ],
+  Constanța: [
+    "Constanța",
+    "Mangalia",
+    "Medgidia",
+    "Năvodari",
+    "Cernavodă",
+    "Ovidiu",
+    "Eforie",
+  ],
+  Covasna: ["Sfântu Gheorghe", "Târgu Secuiesc", "Covasna", "Baraolt"],
+  Dâmbovița: [
+    "Târgoviște",
+    "Moreni",
+    "Pucioasa",
+    "Găești",
+    "Titu",
+    "Fieni",
+  ],
+  Dolj: ["Craiova", "Băilești", "Calafat", "Filiași", "Segarcea", "Dăbuleni"],
+  Galați: ["Galați", "Tecuci", "Târgu Bujor", "Berești"],
+  Giurgiu: ["Giurgiu", "Bolintin-Vale", "Mihăilești"],
+  Gorj: [
+    "Târgu Jiu",
+    "Motru",
+    "Rovinari",
+    "Bumbești-Jiu",
+    "Târgu Cărbunești",
+    "Țicleni",
+  ],
+  Harghita: [
+    "Miercurea Ciuc",
+    "Odorheiu Secuiesc",
+    "Gheorgheni",
+    "Toplița",
+    "Băile Tușnad",
+  ],
+  Hunedoara: [
+    "Deva",
+    "Hunedoara",
+    "Petroșani",
+    "Orăștie",
+    "Brad",
+    "Lupeni",
+    "Vulcan",
+  ],
+  Ialomița: ["Slobozia", "Fetești", "Urziceni", "Țăndărei", "Amara"],
+  Iași: [
+    "Iași",
+    "Pașcani",
+    "Târgu Frumos",
+    "Hârlău",
+    "Podu Iloaiei",
+  ],
+  Ilfov: [
+    "Voluntari",
+    "Popești-Leordeni",
+    "Otopeni",
+    "Pantelimon",
+    "Buftea",
+    "Chitila",
+    "Bragadiru",
+    "Măgurele",
+  ],
+  Maramureș: [
+    "Baia Mare",
+    "Sighetu Marmației",
+    "Borșa",
+    "Vișeu de Sus",
+    "Târgu Lăpuș",
+    "Baia Sprie",
+  ],
+  Mehedinți: [
+    "Drobeta-Turnu Severin",
+    "Orșova",
+    "Strehaia",
+    "Vânju Mare",
+    "Baia de Aramă",
+  ],
+  Mureș: [
+    "Târgu Mureș",
+    "Sighișoara",
+    "Reghin",
+    "Târnăveni",
+    "Luduș",
+    "Sovata",
+  ],
+  Neamț: [
+    "Piatra Neamț",
+    "Roman",
+    "Târgu Neamț",
+    "Bicaz",
+    "Roznov",
+  ],
+  Olt: ["Slatina", "Caracal", "Balș", "Corabia", "Drăgănești-Olt", "Scornicești"],
+  Prahova: [
+    "Ploiești",
+    "Câmpina",
+    "Sinaia",
+    "Bușteni",
+    "Breaza",
+    "Mizil",
+    "Vălenii de Munte",
+  ],
+  Sălaj: ["Zalău", "Șimleu Silvaniei", "Jibou", "Cehu Silvaniei"],
+  "Satu Mare": ["Satu Mare", "Carei", "Negrești-Oaș", "Tășnad", "Ardud"],
+  Sibiu: [
+    "Sibiu",
+    "Mediaș",
+    "Cisnădie",
+    "Avrig",
+    "Agnita",
+    "Dumbrăveni",
+  ],
+  Suceava: [
+    "Suceava",
+    "Fălticeni",
+    "Rădăuți",
+    "Câmpulung Moldovenesc",
+    "Vatra Dornei",
+    "Gura Humorului",
+  ],
+  Teleorman: [
+    "Alexandria",
+    "Roșiorii de Vede",
+    "Turnu Măgurele",
+    "Zimnicea",
+    "Videle",
+  ],
+  Timiș: [
+    "Timișoara",
+    "Lugoj",
+    "Sânnicolau Mare",
+    "Jimbolia",
+    "Făget",
+    "Deta",
+    "Buziaș",
+  ],
+  Tulcea: ["Tulcea", "Babadag", "Măcin", "Isaccea", "Sulina"],
+  Vaslui: ["Vaslui", "Bârlad", "Huși", "Negrești", "Murgeni"],
+  Vâlcea: [
+    "Râmnicu Vâlcea",
+    "Drăgășani",
+    "Călimănești",
+    "Brezoi",
+    "Horezu",
+    "Băile Olănești",
+  ],
+  Vrancea: ["Focșani", "Adjud", "Mărășești", "Odobești", "Panciu"],
+};
+
 const WEB3FORMS_ACCESS_KEY =
-  "7005de1f-745e-419a-9cdc-1cd961b7f67f";
+  process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY ?? "";
 
 export default function CheckoutPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -79,6 +284,24 @@ export default function CheckoutPage() {
     }));
   }
 
+  function handleCountyChange(county: string) {
+    setForm((current) => ({
+      ...current,
+      county,
+      city: "",
+      otherCity: "",
+    }));
+  }
+
+  const availableCities = form.county
+    ? countiesAndCities[form.county] ?? []
+    : [];
+
+  const selectedCity =
+    form.city === "Altă localitate"
+      ? form.otherCity.trim()
+      : form.city.trim();
+
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
@@ -88,6 +311,10 @@ export default function CheckoutPage() {
   const total = subtotal + transport;
 
   function validateForm() {
+    if (!WEB3FORMS_ACCESS_KEY) {
+      return "Cheia Web3Forms nu este configurată.";
+    }
+
     if (!form.firstName.trim()) {
       return "Completează prenumele.";
     }
@@ -96,16 +323,22 @@ export default function CheckoutPage() {
       return "Completează numele.";
     }
 
-    if (!form.phone.trim()) {
-      return "Completează numărul de telefon.";
+    const phoneDigits = form.phone.replace(/\D/g, "");
+
+    if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+      return "Introdu un număr de telefon valid.";
     }
 
-    if (!form.county.trim()) {
-      return "Completează județul.";
+    if (!form.county) {
+      return "Alege județul.";
     }
 
-    if (!form.city.trim()) {
-      return "Completează orașul.";
+    if (!form.city) {
+      return "Alege orașul sau localitatea.";
+    }
+
+    if (form.city === "Altă localitate" && !form.otherCity.trim()) {
+      return "Scrie numele localității.";
     }
 
     if (
@@ -175,7 +408,7 @@ Email: ${form.email || "Necompletat"}
 LIVRARE
 Metodă: ${deliveryDetails}
 Județ: ${form.county}
-Oraș: ${form.city}
+Localitate: ${selectedCity}
 
 PRODUSE
 ${productsText}
@@ -215,8 +448,8 @@ ${form.notes || "Fără observații"}
                 ? "Easybox"
                 : "FAN Courier",
             county: form.county,
-            city: form.city,
-            address:
+            city: selectedCity,
+            delivery_address:
               form.deliveryMethod === "easybox"
                 ? form.easyboxLocation
                 : form.address,
@@ -237,8 +470,7 @@ ${form.notes || "Fără observații"}
 
       if (!response.ok || !result.success) {
         throw new Error(
-          result.message ||
-            "Comanda nu a putut fi trimisă."
+          result.message || "Comanda nu a putut fi trimisă."
         );
       }
 
@@ -270,9 +502,7 @@ ${form.notes || "Fără observații"}
         <Navbar />
 
         <div className="flex min-h-[70vh] items-center justify-center">
-          <p className="text-zinc-500">
-            Se încarcă...
-          </p>
+          <p className="text-zinc-500">Se încarcă...</p>
         </div>
       </main>
     );
@@ -298,8 +528,8 @@ ${form.notes || "Fără observații"}
             </h1>
 
             <p className="mx-auto mt-6 max-w-xl leading-7 text-zinc-400">
-              Am primit datele comenzii. Te vom contacta
-              pentru confirmare și pentru detaliile livrării.
+              Am primit datele comenzii. Te vom contacta pentru
+              confirmare și pentru detaliile livrării.
             </p>
 
             <Link
@@ -414,16 +644,24 @@ ${form.notes || "Fără observații"}
                   <input
                     type="tel"
                     value={form.phone}
-                    onChange={(event) =>
-                      updateField(
-                        "phone",
-                        event.target.value
-                      )
-                    }
+                    onChange={(event) => {
+                      const value = event.target.value
+                        .replace(/[^\d+]/g, "")
+                        .replace(/(?!^)\+/g, "")
+                        .slice(0, 16);
+
+                      updateField("phone", value);
+                    }}
                     autoComplete="tel"
-                    placeholder="07xx xxx xxx"
+                    inputMode="tel"
+                    placeholder="+40 712345678"
                     className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
                   />
+
+                  <p className="mt-2 text-xs text-zinc-600">
+                    Poți folosi și un prefix internațional, de exemplu
+                    +40 sau +44.
+                  </p>
                 </label>
 
                 <label className="block">
@@ -435,10 +673,7 @@ ${form.notes || "Fără observații"}
                     type="email"
                     value={form.email}
                     onChange={(event) =>
-                      updateField(
-                        "email",
-                        event.target.value
-                      )
+                      updateField("email", event.target.value)
                     }
                     autoComplete="email"
                     placeholder="email@exemplu.ro"
@@ -478,10 +713,7 @@ ${form.notes || "Fără observații"}
                     />
 
                     <div>
-                      <p className="font-semibold">
-                        Easybox
-                      </p>
-
+                      <p className="font-semibold">Easybox</p>
                       <p className="mt-1 text-sm text-zinc-500">
                         Ridicare din locker.
                       </p>
@@ -500,14 +732,9 @@ ${form.notes || "Fără observații"}
                     <input
                       type="radio"
                       name="delivery"
-                      checked={
-                        form.deliveryMethod === "fan"
-                      }
+                      checked={form.deliveryMethod === "fan"}
                       onChange={() =>
-                        updateField(
-                          "deliveryMethod",
-                          "fan"
-                        )
+                        updateField("deliveryMethod", "fan")
                       }
                     />
 
@@ -515,7 +742,6 @@ ${form.notes || "Fără observații"}
                       <p className="font-semibold">
                         FAN Courier
                       </p>
-
                       <p className="mt-1 text-sm text-zinc-500">
                         Livrare la adresă.
                       </p>
@@ -537,38 +763,78 @@ ${form.notes || "Fără observații"}
                     Județ *
                   </span>
 
-                  <input
-                    type="text"
+                  <select
                     value={form.county}
                     onChange={(event) =>
-                      updateField(
-                        "county",
-                        event.target.value
-                      )
+                      handleCountyChange(event.target.value)
                     }
-                    autoComplete="address-level1"
                     className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
-                  />
+                  >
+                    <option value="">Alege județul</option>
+
+                    {Object.keys(countiesAndCities).map(
+                      (county) => (
+                        <option key={county} value={county}>
+                          {county}
+                        </option>
+                      )
+                    )}
+                  </select>
                 </label>
 
                 <label className="block">
                   <span className="mb-2 block text-sm text-zinc-400">
-                    Oraș *
+                    Oraș / Localitate *
                   </span>
 
-                  <input
-                    type="text"
+                  <select
                     value={form.city}
+                    disabled={!form.county}
                     onChange={(event) =>
-                      updateField(
-                        "city",
-                        event.target.value
-                      )
+                      updateField("city", event.target.value)
                     }
-                    autoComplete="address-level2"
-                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
-                  />
+                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">
+                      {form.county
+                        ? "Alege localitatea"
+                        : "Alege mai întâi județul"}
+                    </option>
+
+                    {availableCities.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+
+                    {form.county && (
+                      <option value="Altă localitate">
+                        Altă localitate
+                      </option>
+                    )}
+                  </select>
                 </label>
+
+                {form.city === "Altă localitate" && (
+                  <label className="block md:col-span-2">
+                    <span className="mb-2 block text-sm text-zinc-400">
+                      Scrie localitatea *
+                    </span>
+
+                    <input
+                      type="text"
+                      value={form.otherCity}
+                      onChange={(event) =>
+                        updateField(
+                          "otherCity",
+                          event.target.value
+                        )
+                      }
+                      placeholder="Numele comunei, satului sau orașului"
+                      className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                    />
+                  </label>
+                )}
 
                 {form.deliveryMethod === "easybox" ? (
                   <label className="block md:col-span-2">
@@ -626,9 +892,13 @@ ${form.notes || "Fără observații"}
                         onChange={(event) =>
                           updateField(
                             "postalCode",
-                            event.target.value
+                            event.target.value.replace(
+                              /\D/g,
+                              ""
+                            )
                           )
                         }
+                        inputMode="numeric"
                         autoComplete="postal-code"
                         className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
                       />
@@ -648,10 +918,7 @@ ${form.notes || "Fără observații"}
                 <input type="radio" checked readOnly />
 
                 <div>
-                  <p className="font-semibold">
-                    Ramburs
-                  </p>
-
+                  <p className="font-semibold">Ramburs</p>
                   <p className="text-sm text-zinc-500">
                     Plătești când primești coletul.
                   </p>
@@ -669,10 +936,7 @@ ${form.notes || "Fără observații"}
                 rows={5}
                 value={form.notes}
                 onChange={(event) =>
-                  updateField(
-                    "notes",
-                    event.target.value
-                  )
+                  updateField("notes", event.target.value)
                 }
                 placeholder="Instrucțiuni pentru livrare sau alte detalii"
                 className="mt-6 w-full resize-none rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
@@ -741,14 +1005,12 @@ ${form.notes || "Fără observații"}
               disabled={sending}
               className="mt-8 w-full rounded-2xl bg-white py-4 text-lg font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {sending
-                ? "Se trimite..."
-                : "Plasează comanda"}
+              {sending ? "Se trimite..." : "Plasează comanda"}
             </button>
 
             <p className="mt-4 text-center text-xs leading-5 text-zinc-600">
-              După trimitere, comanda ajunge automat la
-              VOID MARKET.
+              După trimitere, comanda ajunge automat la VOID
+              MARKET.
             </p>
 
             <Link
