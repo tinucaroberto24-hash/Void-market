@@ -14,6 +14,7 @@ type CartItem = {
 };
 
 type DeliveryMethod = "easybox" | "fan";
+type PaymentMethod = "cash" | "card";
 
 type CheckoutForm = {
   firstName: string;
@@ -28,6 +29,7 @@ type CheckoutForm = {
   easyboxLocation: string;
   notes: string;
   deliveryMethod: DeliveryMethod;
+  paymentMethod: PaymentMethod;
 };
 
 const initialForm: CheckoutForm = {
@@ -42,7 +44,8 @@ const initialForm: CheckoutForm = {
   postalCode: "",
   easyboxLocation: "",
   notes: "",
-  deliveryMethod: "easybox",
+  deliveryMethod: "fan",
+  paymentMethod: "cash",
 };
 
 const countiesAndCities: Record<string, string[]> = {
@@ -317,9 +320,8 @@ export default function CheckoutPage() {
   const [form, setForm] = useState<CheckoutForm>(initialForm);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [sending, setSending] = useState(false);
-  const [locating, setLocating] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     const savedCart = localStorage.getItem("void-market-cart");
@@ -352,66 +354,7 @@ export default function CheckoutPage() {
       county,
       city: "",
       otherCity: "",
-      easyboxLocation: "",
     }));
-  }
-
-  function openNearbyEasybox() {
-    setError("");
-
-    if (!navigator.geolocation) {
-      setError("Browserul nu poate detecta locația.");
-      return;
-    }
-
-    setLocating(true);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-
-        const query = `easybox ${latitude},${longitude}`;
-        const mapsUrl =
-          "https://www.google.com/maps/search/?api=1&query=" +
-          encodeURIComponent(query);
-
-        window.open(mapsUrl, "_blank", "noopener,noreferrer");
-        setLocating(false);
-      },
-      () => {
-        setLocating(false);
-        setError(
-          "Nu am putut folosi locația. Permite accesul la locație în browser și încearcă din nou."
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      }
-    );
-  }
-
-  function openEasyboxForSelectedCity() {
-    setError("");
-
-    const city =
-      form.city === "Altă localitate"
-        ? form.otherCity.trim()
-        : form.city.trim();
-
-    if (!city || !form.county) {
-      setError("Alege județul și localitatea înainte.");
-      return;
-    }
-
-    const query = `easybox ${city} ${form.county}`;
-    const mapsUrl =
-      "https://www.google.com/maps/search/?api=1&query=" +
-      encodeURIComponent(query);
-
-    window.open(mapsUrl, "_blank", "noopener,noreferrer");
   }
 
   const availableCities = form.county
@@ -432,10 +375,6 @@ export default function CheckoutPage() {
   const total = subtotal + transport;
 
   function validateForm() {
-    if (!WEB3FORMS_ACCESS_KEY) {
-      return "Cheia Web3Forms nu este configurată.";
-    }
-
     if (!form.firstName.trim()) {
       return "Completează prenumele.";
     }
@@ -469,7 +408,7 @@ export default function CheckoutPage() {
       form.deliveryMethod === "easybox" &&
       !form.easyboxLocation.trim()
     ) {
-      return "Scrie Easybox-ul ales.";
+      return "Completează Easybox-ul ales.";
     }
 
     if (
@@ -486,22 +425,22 @@ export default function CheckoutPage() {
     return "";
   }
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
-
-    setError("");
-    setSuccess(false);
-
-    const validationError = validateForm();
-
-    if (validationError) {
-      setError(validationError);
-      return;
+  function getDeliveryAddress() {
+    if (form.deliveryMethod === "easybox") {
+      return form.easyboxLocation.trim();
     }
 
-    setSending(true);
+    return `${form.address.trim()}${
+      form.postalCode.trim()
+        ? `, Cod poștal: ${form.postalCode.trim()}`
+        : ""
+    }`;
+  }
+
+  async function sendOrderEmail(paymentLabel: string) {
+    if (!WEB3FORMS_ACCESS_KEY) {
+      throw new Error("Cheia Web3Forms nu este configurată.");
+    }
 
     const productsText = cart
       .map(
@@ -513,14 +452,6 @@ Preț: ${item.price} Lei`
       )
       .join("\n\n");
 
-    const deliveryDetails =
-      form.deliveryMethod === "easybox"
-        ? `Easybox
-Easybox ales: ${form.easyboxLocation}`
-        : `FAN Courier
-Adresă: ${form.address}
-Cod poștal: ${form.postalCode || "Necompletat"}`;
-
     const orderMessage = `
 COMANDĂ NOUĂ VOID MARKET
 
@@ -530,15 +461,20 @@ Telefon: ${form.phone}
 Email: ${form.email || "Necompletat"}
 
 LIVRARE
-Metodă: ${deliveryDetails}
+Metodă: ${
+      form.deliveryMethod === "easybox"
+        ? "Easybox"
+        : "FAN Courier"
+    }
 Județ: ${form.county}
 Localitate: ${selectedCity}
+Adresă / Locker: ${getDeliveryAddress()}
 
 PRODUSE
 ${productsText}
 
 PLATĂ
-Metodă: Ramburs
+Metodă: ${paymentLabel}
 
 SUMAR
 Subtotal: ${subtotal} Lei
@@ -549,76 +485,129 @@ OBSERVAȚII
 ${form.notes || "Fără observații"}
     `.trim();
 
-    try {
-      const response = await fetch(
-        "https://api.web3forms.com/submit",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            access_key: WEB3FORMS_ACCESS_KEY,
-            subject: "Comandă nouă VOID MARKET",
-            from_name: "VOID MARKET Checkout",
-            name: `${form.firstName} ${form.lastName}`,
-            email:
-              form.email.trim() ||
-              "voidmarket.ro@gmail.com",
-            phone: form.phone,
-            delivery_method:
-              form.deliveryMethod === "easybox"
-                ? "Easybox"
-                : "FAN Courier",
-            county: form.county,
-            city: selectedCity,
-            delivery_address:
-              form.deliveryMethod === "easybox"
-                ? form.easyboxLocation
-                : form.address,
-            postal_code:
-              form.deliveryMethod === "fan"
-                ? form.postalCode || "Necompletat"
-                : "Nu se aplică",
-            payment_method: "Ramburs",
-            subtotal: `${subtotal} Lei`,
-            transport: `${transport} Lei`,
-            total: `${total} Lei`,
-            message: orderMessage,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result.message ||
-            "Comanda nu a putut fi trimisă."
-        );
+    const response = await fetch(
+      "https://api.web3forms.com/submit",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_ACCESS_KEY,
+          subject: `Comandă nouă VOID MARKET - ${paymentLabel}`,
+          from_name: "VOID MARKET Checkout",
+          name: `${form.firstName} ${form.lastName}`,
+          email:
+            form.email.trim() || "voidmarket.ro@gmail.com",
+          phone: form.phone,
+          delivery_method:
+            form.deliveryMethod === "easybox"
+              ? "Easybox"
+              : "FAN Courier",
+          county: form.county,
+          city: selectedCity,
+          delivery_address: getDeliveryAddress(),
+          payment_method: paymentLabel,
+          subtotal: `${subtotal} Lei`,
+          transport: `${transport} Lei`,
+          total: `${total} Lei`,
+          message: orderMessage,
+        }),
       }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.message || "Comanda nu a putut fi trimisă."
+      );
+    }
+  }
+
+  async function handleCashOrder() {
+    setSending(true);
+
+    try {
+      await sendOrderEmail("Ramburs");
 
       localStorage.removeItem("void-market-cart");
       window.dispatchEvent(new Event("cart-updated"));
 
       setCart([]);
-      setForm(initialForm);
       setSuccess(true);
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
     } catch (submitError) {
       console.error(submitError);
 
       setError(
-        "Comanda nu a putut fi trimisă. Verifică internetul și încearcă din nou."
+        "Comanda nu a putut fi trimisă. Încearcă din nou."
       );
     } finally {
       setSending(false);
     }
+  }
+
+  async function handleCardPayment() {
+    setSending(true);
+
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          phone: form.phone,
+          county: form.county,
+          city: selectedCity,
+          deliveryMethod: form.deliveryMethod,
+          deliveryAddress: getDeliveryAddress(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.url) {
+        throw new Error(
+          result.error || "Nu am putut porni plata."
+        );
+      }
+
+      window.location.href = result.url;
+    } catch (paymentError) {
+      console.error(paymentError);
+
+      setError(
+        "Nu am putut deschide plata cu cardul. Verifică cheile Stripe."
+      );
+
+      setSending(false);
+    }
+  }
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+    setError("");
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    if (form.paymentMethod === "card") {
+      await handleCardPayment();
+      return;
+    }
+
+    await handleCashOrder();
   }
 
   if (!loaded) {
@@ -627,9 +616,7 @@ ${form.notes || "Fără observații"}
         <Navbar />
 
         <div className="flex min-h-[70vh] items-center justify-center">
-          <p className="text-zinc-500">
-            Se încarcă...
-          </p>
+          <p className="text-zinc-500">Se încarcă...</p>
         </div>
       </main>
     );
@@ -655,7 +642,7 @@ ${form.notes || "Fără observații"}
             </h1>
 
             <p className="mx-auto mt-6 max-w-xl leading-7 text-zinc-400">
-              Am primit datele comenzii. Te vom contacta
+              Comanda ramburs a fost trimisă. Te vom contacta
               pentru confirmare și livrare.
             </p>
 
@@ -718,14 +705,13 @@ ${form.notes || "Fără observații"}
           className="grid gap-10 lg:grid-cols-[1fr_380px]"
         >
           <div className="space-y-8">
-            {/* DATE DE CONTACT */}
             <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 md:p-8">
               <h2 className="text-2xl font-bold">
                 Date de contact
               </h2>
 
               <div className="mt-8 grid gap-5 md:grid-cols-2">
-                <label className="block">
+                <label>
                   <span className="mb-2 block text-sm text-zinc-400">
                     Prenume *
                   </span>
@@ -739,12 +725,11 @@ ${form.notes || "Fără observații"}
                         event.target.value
                       )
                     }
-                    autoComplete="given-name"
-                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                   />
                 </label>
 
-                <label className="block">
+                <label>
                   <span className="mb-2 block text-sm text-zinc-400">
                     Nume *
                   </span>
@@ -758,12 +743,11 @@ ${form.notes || "Fără observații"}
                         event.target.value
                       )
                     }
-                    autoComplete="family-name"
-                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                   />
                 </label>
 
-                <label className="block">
+                <label>
                   <span className="mb-2 block text-sm text-zinc-400">
                     Telefon *
                   </span>
@@ -779,14 +763,12 @@ ${form.notes || "Fără observații"}
 
                       updateField("phone", value);
                     }}
-                    inputMode="tel"
-                    autoComplete="tel"
                     placeholder="+40 712345678"
-                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                   />
                 </label>
 
-                <label className="block">
+                <label>
                   <span className="mb-2 block text-sm text-zinc-400">
                     Email
                   </span>
@@ -795,17 +777,17 @@ ${form.notes || "Fără observații"}
                     type="email"
                     value={form.email}
                     onChange={(event) =>
-                      updateField("email", event.target.value)
+                      updateField(
+                        "email",
+                        event.target.value
+                      )
                     }
-                    autoComplete="email"
-                    placeholder="email@exemplu.ro"
-                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                   />
                 </label>
               </div>
             </section>
 
-            {/* METODA DE LIVRARE */}
             <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 md:p-8">
               <h2 className="text-2xl font-bold">
                 Metoda de livrare
@@ -813,79 +795,61 @@ ${form.notes || "Fără observații"}
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <label
-                  className={`cursor-pointer rounded-2xl border p-5 transition ${
+                  className={`cursor-pointer rounded-2xl border p-5 ${
                     form.deliveryMethod === "easybox"
                       ? "border-white bg-zinc-900"
-                      : "border-zinc-700 hover:border-zinc-500"
+                      : "border-zinc-700"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="delivery"
-                      checked={
-                        form.deliveryMethod === "easybox"
-                      }
-                      onChange={() =>
-                        updateField(
-                          "deliveryMethod",
-                          "easybox"
-                        )
-                      }
-                    />
+                  <input
+                    type="radio"
+                    name="delivery"
+                    checked={
+                      form.deliveryMethod === "easybox"
+                    }
+                    onChange={() =>
+                      updateField(
+                        "deliveryMethod",
+                        "easybox"
+                      )
+                    }
+                  />
 
-                    <div>
-                      <p className="font-semibold">
-                        Easybox
-                      </p>
-                      <p className="mt-1 text-sm text-zinc-500">
-                        Ridicare din locker.
-                      </p>
-                    </div>
-                  </div>
+                  <span className="ml-3 font-semibold">
+                    Easybox
+                  </span>
                 </label>
 
                 <label
-                  className={`cursor-pointer rounded-2xl border p-5 transition ${
+                  className={`cursor-pointer rounded-2xl border p-5 ${
                     form.deliveryMethod === "fan"
                       ? "border-white bg-zinc-900"
-                      : "border-zinc-700 hover:border-zinc-500"
+                      : "border-zinc-700"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="delivery"
-                      checked={form.deliveryMethod === "fan"}
-                      onChange={() =>
-                        updateField(
-                          "deliveryMethod",
-                          "fan"
-                        )
-                      }
-                    />
+                  <input
+                    type="radio"
+                    name="delivery"
+                    checked={form.deliveryMethod === "fan"}
+                    onChange={() =>
+                      updateField("deliveryMethod", "fan")
+                    }
+                  />
 
-                    <div>
-                      <p className="font-semibold">
-                        FAN Courier
-                      </p>
-                      <p className="mt-1 text-sm text-zinc-500">
-                        Livrare la adresă.
-                      </p>
-                    </div>
-                  </div>
+                  <span className="ml-3 font-semibold">
+                    FAN Courier
+                  </span>
                 </label>
               </div>
             </section>
 
-            {/* DATE DE LIVRARE */}
             <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 md:p-8">
               <h2 className="text-2xl font-bold">
                 Date pentru livrare
               </h2>
 
               <div className="mt-8 grid gap-5 md:grid-cols-2">
-                <label className="block">
+                <label>
                   <span className="mb-2 block text-sm text-zinc-400">
                     Județ *
                   </span>
@@ -895,11 +859,9 @@ ${form.notes || "Fără observații"}
                     onChange={(event) =>
                       handleCountyChange(event.target.value)
                     }
-                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                   >
-                    <option value="">
-                      Alege județul
-                    </option>
+                    <option value="">Alege județul</option>
 
                     {Object.keys(countiesAndCities).map(
                       (county) => (
@@ -911,7 +873,7 @@ ${form.notes || "Fără observații"}
                   </select>
                 </label>
 
-                <label className="block">
+                <label>
                   <span className="mb-2 block text-sm text-zinc-400">
                     Oraș / Localitate *
                   </span>
@@ -922,12 +884,10 @@ ${form.notes || "Fără observații"}
                     onChange={(event) =>
                       updateField("city", event.target.value)
                     }
-                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white disabled:opacity-50"
                   >
                     <option value="">
-                      {form.county
-                        ? "Alege localitatea"
-                        : "Alege mai întâi județul"}
+                      Alege localitatea
                     </option>
 
                     {availableCities.map((city) => (
@@ -945,7 +905,7 @@ ${form.notes || "Fără observații"}
                 </label>
 
                 {form.city === "Altă localitate" && (
-                  <label className="block md:col-span-2">
+                  <label className="md:col-span-2">
                     <span className="mb-2 block text-sm text-zinc-400">
                       Scrie localitatea *
                     </span>
@@ -959,62 +919,33 @@ ${form.notes || "Fără observații"}
                           event.target.value
                         )
                       }
-                      className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                      className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                     />
                   </label>
                 )}
 
                 {form.deliveryMethod === "easybox" ? (
-                  <div className="md:col-span-2">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <button
-                        type="button"
-                        onClick={openNearbyEasybox}
-                        disabled={locating}
-                        className="rounded-xl bg-white px-5 py-4 font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {locating
-                          ? "Se caută locația..."
-                          : "📍 Easybox lângă mine"}
-                      </button>
+                  <label className="md:col-span-2">
+                    <span className="mb-2 block text-sm text-zinc-400">
+                      Easybox ales *
+                    </span>
 
-                      <button
-                        type="button"
-                        onClick={openEasyboxForSelectedCity}
-                        className="rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-4 font-semibold transition hover:border-white"
-                      >
-                        Caută în localitatea aleasă
-                      </button>
-                    </div>
-
-                    <p className="mt-3 text-sm leading-6 text-zinc-500">
-                      Se deschide Google Maps. Alege lockerul
-                      dorit, apoi scrie numele sau adresa lui
-                      în câmpul de mai jos.
-                    </p>
-
-                    <label className="mt-5 block">
-                      <span className="mb-2 block text-sm text-zinc-400">
-                        Easybox ales *
-                      </span>
-
-                      <input
-                        type="text"
-                        value={form.easyboxLocation}
-                        onChange={(event) =>
-                          updateField(
-                            "easyboxLocation",
-                            event.target.value
-                          )
-                        }
-                        placeholder="Exemplu: easybox Kaufland Bacău"
-                        className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
-                      />
-                    </label>
-                  </div>
+                    <input
+                      type="text"
+                      value={form.easyboxLocation}
+                      onChange={(event) =>
+                        updateField(
+                          "easyboxLocation",
+                          event.target.value
+                        )
+                      }
+                      placeholder="Exemplu: Easybox Kaufland Bacău"
+                      className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
+                    />
+                  </label>
                 ) : (
                   <>
-                    <label className="block md:col-span-2">
+                    <label className="md:col-span-2">
                       <span className="mb-2 block text-sm text-zinc-400">
                         Adresă completă *
                       </span>
@@ -1028,13 +959,11 @@ ${form.notes || "Fără observații"}
                             event.target.value
                           )
                         }
-                        autoComplete="street-address"
-                        placeholder="Stradă, număr, bloc, scară, apartament"
-                        className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                        className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                       />
                     </label>
 
-                    <label className="block">
+                    <label>
                       <span className="mb-2 block text-sm text-zinc-400">
                         Cod poștal
                       </span>
@@ -1051,9 +980,7 @@ ${form.notes || "Fără observații"}
                             )
                           )
                         }
-                        inputMode="numeric"
-                        autoComplete="postal-code"
-                        className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                        className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                       />
                     </label>
                   </>
@@ -1061,27 +988,64 @@ ${form.notes || "Fără observații"}
               </div>
             </section>
 
-            {/* PLATĂ */}
             <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 md:p-8">
               <h2 className="text-2xl font-bold">
                 Metoda de plată
               </h2>
 
-              <label className="mt-6 flex items-center gap-4 rounded-2xl border border-white bg-zinc-900 p-5">
-                <input type="radio" checked readOnly />
+              <div className="mt-6 space-y-4">
+                <label
+                  className={`block cursor-pointer rounded-2xl border p-5 ${
+                    form.paymentMethod === "cash"
+                      ? "border-white bg-zinc-900"
+                      : "border-zinc-700"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked={form.paymentMethod === "cash"}
+                    onChange={() =>
+                      updateField("paymentMethod", "cash")
+                    }
+                  />
 
-                <div>
-                  <p className="font-semibold">
+                  <span className="ml-3 font-semibold">
                     Ramburs
-                  </p>
-                  <p className="text-sm text-zinc-500">
+                  </span>
+
+                  <p className="ml-7 mt-2 text-sm text-zinc-500">
                     Plătești când primești coletul.
                   </p>
-                </div>
-              </label>
+                </label>
+
+                <label
+                  className={`block cursor-pointer rounded-2xl border p-5 ${
+                    form.paymentMethod === "card"
+                      ? "border-white bg-zinc-900"
+                      : "border-zinc-700"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked={form.paymentMethod === "card"}
+                    onChange={() =>
+                      updateField("paymentMethod", "card")
+                    }
+                  />
+
+                  <span className="ml-3 font-semibold">
+                    Card
+                  </span>
+
+                  <p className="ml-7 mt-2 text-sm text-zinc-500">
+                    Vei fi redirecționat pe pagina securizată Stripe.
+                  </p>
+                </label>
+              </div>
             </section>
 
-            {/* OBSERVAȚII */}
             <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6 md:p-8">
               <h2 className="text-2xl font-bold">
                 Observații
@@ -1093,13 +1057,11 @@ ${form.notes || "Fără observații"}
                 onChange={(event) =>
                   updateField("notes", event.target.value)
                 }
-                placeholder="Instrucțiuni pentru livrare sau alte detalii"
-                className="mt-6 w-full resize-none rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
+                className="mt-6 w-full resize-none rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
               />
             </section>
           </div>
 
-          {/* SUMAR */}
           <aside className="h-fit rounded-3xl border border-zinc-800 bg-zinc-950 p-6 lg:sticky lg:top-28">
             <h2 className="text-2xl font-bold">
               Sumar comandă
@@ -1161,18 +1123,15 @@ ${form.notes || "Fără observații"}
               className="mt-8 w-full rounded-2xl bg-white py-4 text-lg font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {sending
-                ? "Se trimite..."
+                ? "Se procesează..."
+                : form.paymentMethod === "card"
+                ? "Continuă spre plata cu cardul"
                 : "Plasează comanda"}
             </button>
 
-            <p className="mt-4 text-center text-xs leading-5 text-zinc-600">
-              După trimitere, comanda ajunge automat la
-              VOID MARKET.
-            </p>
-
             <Link
               href="/cos"
-              className="mt-4 block text-center text-sm text-zinc-400 underline transition hover:text-white"
+              className="mt-4 block text-center text-sm text-zinc-400 underline hover:text-white"
             >
               Înapoi la coș
             </Link>
