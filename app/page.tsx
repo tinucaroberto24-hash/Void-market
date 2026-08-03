@@ -26,7 +26,6 @@ export default function Home() {
     <main className="min-h-screen bg-black text-white">
       <Navbar />
 
-      {/* HERO */}
       <section className="flex flex-col justify-center items-center text-center h-[85vh] px-6">
         <h1 className="text-7xl md:text-8xl font-black tracking-[0.3em]">
           VOID MARKET
@@ -37,11 +36,7 @@ export default function Home() {
         </button>
       </section>
 
-      {/* PRODUSE */}
-      <section
-        id="magazin"
-        className="max-w-7xl mx-auto px-8 py-20"
-      >
+      <section id="magazin" className="max-w-7xl mx-auto px-8 py-20">
         <h2 className="text-4xl font-bold mb-12">
           Produse Populare
         </h2>
@@ -76,90 +71,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* RECENZII */}
-      <section
-        id="recenzii"
-        className="bg-zinc-950 py-24 px-8"
-      >
-        <h2 className="text-4xl font-bold text-center mb-14">
-          Recenzii
-        </h2>
-
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-
-          <div className="bg-zinc-900 rounded-2xl p-8">
-            <div className="text-yellow-400 text-xl">
-              ★★★★★
-            </div>
-
-            <p className="mt-5 text-zinc-300">
-              Am comandat o pereche de Jordan 4 și au ajuns în două zile.
-              Totul a fost exact ca în poze.
-            </p>
-
-            <div className="mt-6">
-              <h4 className="font-semibold">
-                Andrei Popescu
-              </h4>
-
-              <p className="text-zinc-500 text-sm">
-                București
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-zinc-900 rounded-2xl p-8">
-            <div className="text-yellow-400 text-xl">
-              ★★★★★
-            </div>
-
-            <p className="mt-5 text-zinc-300">
-              Produse originale și comunicare foarte bună.
-              Recomand fără probleme.
-            </p>
-
-            <div className="mt-6">
-              <h4 className="font-semibold">
-                Bianca Ionescu
-              </h4>
-
-              <p className="text-zinc-500 text-sm">
-                Cluj-Napoca
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-zinc-900 rounded-2xl p-8">
-            <div className="text-yellow-400 text-xl">
-              ★★★★★
-            </div>
-
-            <p className="mt-5 text-zinc-300">
-              Am cumpărat un hoodie Essentials.
-              Livrare rapidă și produs impecabil.
-            </p>
-
-            <div className="mt-6">
-              <h4 className="font-semibold">
-                Mihai Dumitrescu
-              </h4>
-
-              <p className="text-zinc-500 text-sm">
-                Iași
-              </p>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* CONTACT */}
-      <section
-        id="contact"
-        className="py-24 px-8"
-      >
+      <section id="contact" className="py-24 px-8">
         <div className="max-w-4xl mx-auto text-center">
-
           <h2 className="text-4xl font-bold">
             Contact
           </h2>
