@@ -317,6 +317,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [orderId, setOrderId] = useState("");
 
   useEffect(() => {
     const savedCart = localStorage.getItem("void-market-cart");
@@ -589,6 +590,7 @@ ${form.notes || "Fără observații"}
       window.dispatchEvent(new Event("cart-updated"));
 
       setCart([]);
+      setOrderId(result.orderId ?? orderId);
       setSuccess(true);
     } catch (submitError: unknown) {
       console.error(submitError);
@@ -707,6 +709,47 @@ ${form.notes || "Fără observații"}
               Comanda ramburs a fost trimisă. Te vom contacta
               pentru confirmare și livrare.
             </p>
+
+            {orderId && (
+              <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-zinc-700 bg-black p-6">
+                <p className="text-sm uppercase tracking-[0.2em] text-zinc-500">
+                  ID comandă
+                </p>
+
+                <p className="mt-3 break-all text-lg font-bold">
+                  {orderId}
+                </p>
+
+                <p className="mt-3 text-sm leading-6 text-zinc-500">
+                  Păstrează acest ID. Îl vei folosi împreună cu
+                  emailul în pagina „Urmărește comanda”.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(orderId);
+                    } catch (copyError) {
+                      console.error(
+                        "ID-ul comenzii nu a putut fi copiat:",
+                        copyError
+                      );
+                    }
+                  }}
+                  className="mt-5 rounded-xl bg-white px-5 py-3 font-bold text-black transition hover:bg-zinc-200"
+                >
+                  Copiază ID-ul
+                </button>
+
+                <Link
+                  href="/track-order"
+                  className="mt-4 block text-sm font-semibold text-zinc-400 underline transition hover:text-white"
+                >
+                  Urmărește comanda
+                </Link>
+              </div>
+            )}
 
             <Link
               href="/"
