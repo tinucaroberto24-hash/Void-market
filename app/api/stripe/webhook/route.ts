@@ -9,6 +9,14 @@ type PurchasedItem = {
   quantity: number;
 };
 
+type OrderItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+};
+
 export async function POST(request: Request) {
   const stripeSecretKey =
     process.env.STRIPE_SECRET_KEY;
@@ -88,109 +96,254 @@ export async function POST(request: Request) {
 
   try {
     if (
-      event.type ===
+      event.type !==
       "checkout.session.completed"
     ) {
-      const session =
-        event.data.object as Stripe.Checkout.Session;
+      return NextResponse.json({
+        received: true,
+        ignored: true,
+      });
+    }
 
-      if (session.payment_status !== "paid") {
-        return NextResponse.json({
-          received: true,
-          processed: false,
-          reason: "Plata nu este confirmată.",
-        });
-      }
+    const session =
+      event.data.object as Stripe.Checkout.Session;
 
-      const lineItems =
-        await stripe.checkout.sessions.listLineItems(
-          session.id,
-          {
-            limit: 100,
-            expand: ["data.price.product"],
-          }
-        );
+    if (session.payment_status !== "paid") {
+      return NextResponse.json({
+        received: true,
+        processed: false,
+        reason: "Plata nu este confirmată.",
+      });
+    }
 
-      const purchasedItems: PurchasedItem[] = [];
-
-      for (const lineItem of lineItems.data) {
-        const stripeProduct =
-          lineItem.price?.product;
-
-        if (
-          !stripeProduct ||
-          typeof stripeProduct === "string" ||
-          "deleted" in stripeProduct
-        ) {
-          continue;
-        }
-
-        const productId =
-          stripeProduct.metadata.product_id;
-
-        /*
-          Transportul nu are product_id,
-          deci este ignorat automat.
-        */
-        if (!productId) {
-          continue;
-        }
-
-        const quantity =
-          lineItem.quantity ?? 0;
-
-        if (quantity <= 0) {
-          continue;
-        }
-
-        purchasedItems.push({
-          id: productId,
-          quantity,
-        });
-      }
-
-      if (purchasedItems.length === 0) {
-        throw new Error(
-          "Sesiunea Stripe nu conține produse valide."
-        );
-      }
-
-      const supabaseAdmin = createClient(
-        supabaseUrl,
-        supabaseSecretKey,
+    const lineItems =
+      await stripe.checkout.sessions.listLineItems(
+        session.id,
         {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false,
-          },
+          limit: 100,
+          expand: ["data.price.product"],
         }
       );
 
-      const {
-        data: wasProcessed,
-        error: stockError,
-      } = await supabaseAdmin.rpc(
-        "fulfill_stripe_checkout",
-        {
-          p_session_id: session.id,
-          p_items: purchasedItems,
-        }
+    const purchasedItems: PurchasedItem[] = [];
+    const orderItems: OrderItem[] = [];
+
+    let productsSubtotal = 0;
+    let transportTotal = 0;
+
+    for (const lineItem of lineItems.data) {
+      const stripeProduct =
+        lineItem.price?.product;
+
+      const quantity =
+        lineItem.quantity ?? 0;
+
+      const lineTotalLei = Math.round(
+        (lineItem.amount_total ?? 0) / 100
       );
 
-      if (stockError) {
-        throw new Error(stockError.message);
+      /*
+        Dacă produsul Stripe nu poate fi citit,
+        ignorăm linia.
+      */
+      if (
+        !stripeProduct ||
+        typeof stripeProduct === "string" ||
+        "deleted" in stripeProduct
+      ) {
+        continue;
       }
 
-      console.log(
-        wasProcessed
-          ? `Stoc actualizat pentru sesiunea ${session.id}.`
-          : `Sesiunea ${session.id} fusese deja procesată.`
+      const productId =
+        stripeProduct.metadata.product_id;
+
+      /*
+        Transportul nu are product_id.
+      */
+      if (!productId) {
+        transportTotal += lineTotalLei;
+        continue;
+      }
+
+      if (quantity <= 0) {
+        continue;
+      }
+
+      const unitPriceLei =
+        quantity > 0
+          ? Math.round(lineTotalLei / quantity)
+          : 0;
+
+      purchasedItems.push({
+        id: productId,
+        quantity,
+      });
+
+      orderItems.push({
+        id: productId,
+        name:
+          lineItem.description ||
+          stripeProduct.name ||
+          "Produs",
+        quantity,
+        unit_price: unitPriceLei,
+        total: lineTotalLei,
+      });
+
+      productsSubtotal += lineTotalLei;
+    }
+
+    if (purchasedItems.length === 0) {
+      throw new Error(
+        "Sesiunea Stripe nu conține produse valide."
       );
     }
 
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      supabaseSecretKey,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      }
+    );
+
+    /*
+      Scade stocul.
+
+      Funcția SQL verifică session.id, astfel încât
+      aceeași plată nu poate scădea stocul de două ori.
+    */
+    const {
+      data: wasProcessed,
+      error: stockError,
+    } = await supabaseAdmin.rpc(
+      "fulfill_stripe_checkout",
+      {
+        p_session_id: session.id,
+        p_items: purchasedItems,
+      }
+    );
+
+    if (stockError) {
+      throw new Error(
+        `Stocul nu a putut fi actualizat: ${stockError.message}`
+      );
+    }
+
+    const customerName =
+      session.metadata?.customer_name?.trim() ||
+      session.customer_details?.name?.trim() ||
+      "Client Stripe";
+
+    const customerEmail =
+      session.customer_details?.email?.trim() ||
+      session.customer_email?.trim() ||
+      "";
+
+    const customerPhone =
+      session.metadata?.phone?.trim() ||
+      session.customer_details?.phone?.trim() ||
+      "";
+
+    const county =
+      session.metadata?.county?.trim() || "";
+
+    const city =
+      session.metadata?.city?.trim() || "";
+
+    const deliveryMethod =
+      session.metadata?.delivery_method?.trim() ||
+      "fan";
+
+    const deliveryAddress =
+      session.metadata?.delivery_address?.trim() ||
+      "";
+
+    if (!customerEmail) {
+      throw new Error(
+        "Comanda nu conține adresa de email a clientului."
+      );
+    }
+
+    if (!customerPhone) {
+      throw new Error(
+        "Comanda nu conține numărul de telefon."
+      );
+    }
+
+    if (
+      !county ||
+      !city ||
+      !deliveryAddress
+    ) {
+      throw new Error(
+        "Comanda nu conține toate datele de livrare."
+      );
+    }
+
+    const totalLei = Math.round(
+      (session.amount_total ?? 0) / 100
+    );
+
+    /*
+      Upsert împiedică apariția aceleiași comenzi
+      de mai multe ori dacă Stripe retrimite webhook-ul.
+    */
+    const { error: orderError } =
+      await supabaseAdmin
+        .from("orders")
+        .upsert(
+          {
+            stripe_session_id: session.id,
+
+            customer_name: customerName,
+            email: customerEmail,
+            phone: customerPhone,
+
+            county,
+            city,
+
+            delivery_address:
+              deliveryAddress,
+
+            delivery_method:
+              deliveryMethod,
+
+            payment_method: "card",
+            status: "Nouă",
+
+            subtotal: productsSubtotal,
+            transport: transportTotal,
+            total: totalLei,
+
+            items: orderItems,
+          },
+          {
+            onConflict: "stripe_session_id",
+            ignoreDuplicates: true,
+          }
+        );
+
+    if (orderError) {
+      throw new Error(
+        `Comanda nu a putut fi salvată: ${orderError.message}`
+      );
+    }
+
+    console.log(
+      wasProcessed
+        ? `Comanda ${session.id} a fost salvată, iar stocul a fost actualizat.`
+        : `Comanda ${session.id} exista deja sau stocul fusese deja actualizat.`
+    );
+
     return NextResponse.json({
       received: true,
+      processed: Boolean(wasProcessed),
+      orderSaved: true,
     });
   } catch (error) {
     console.error(
@@ -199,8 +352,8 @@ export async function POST(request: Request) {
     );
 
     /*
-      Returnăm 500 pentru ca Stripe să încerce
-      din nou livrarea evenimentului.
+      Răspunsul 500 determină Stripe să încerce
+      din nou trimiterea evenimentului.
     */
     return NextResponse.json(
       {
