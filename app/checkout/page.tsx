@@ -527,8 +527,40 @@ ${form.notes || "Fără observații"}
 
   async function handleCashOrder() {
     setSending(true);
+    setError("");
 
     try {
+      const orderId = crypto.randomUUID();
+
+      const response = await fetch("/api/orders/cash", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId,
+          customerName: `${form.firstName} ${form.lastName}`,
+          email: form.email,
+          phone: form.phone,
+          county: form.county,
+          city: selectedCity,
+          deliveryAddress: getDeliveryAddress(),
+          deliveryMethod: "fan",
+          items: cart.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.error || "Nu am putut salva comanda."
+        );
+      }
+
       await sendOrderEmail("Ramburs");
 
       localStorage.removeItem("void-market-cart");
@@ -536,11 +568,13 @@ ${form.notes || "Fără observații"}
 
       setCart([]);
       setSuccess(true);
-    } catch (submitError) {
+    } catch (submitError: unknown) {
       console.error(submitError);
 
       setError(
-        "Comanda nu a putut fi trimisă. Încearcă din nou."
+        submitError instanceof Error
+          ? submitError.message
+          : "Comanda nu a putut fi trimisă."
       );
     } finally {
       setSending(false);
