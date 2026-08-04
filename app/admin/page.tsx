@@ -210,6 +210,13 @@ export default async function AdminPage() {
                       Vezi
                     </Link>
 
+                    <Link
+                      href={`/admin/products/${product.id}/edit`}
+                      className="rounded-xl border border-blue-700 bg-blue-950/30 px-5 py-3 font-semibold text-blue-300 transition hover:border-blue-400 hover:bg-blue-900/40"
+                    >
+                      Editează
+                    </Link>
+
                     <DeleteProductButton
                       productId={product.id}
                       productName={product.name}
