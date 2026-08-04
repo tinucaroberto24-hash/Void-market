@@ -15,12 +15,18 @@ type CartItem = {
 
 export default function Navbar() {
   const [cartCount, setCartCount] = useState(0);
-  const [adminHref, setAdminHref] = useState("/admin/login");
-  const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [adminHref, setAdminHref] =
+    useState("/admin/login");
+  const [checkingAdmin, setCheckingAdmin] =
+    useState(true);
+  const [mobileOpen, setMobileOpen] =
+    useState(false);
 
   useEffect(() => {
     function updateCartCount() {
-      const savedCart = localStorage.getItem("void-market-cart");
+      const savedCart = localStorage.getItem(
+        "void-market-cart"
+      );
 
       if (!savedCart) {
         setCartCount(0);
@@ -28,10 +34,12 @@ export default function Navbar() {
       }
 
       try {
-        const cart: CartItem[] = JSON.parse(savedCart);
+        const cart: CartItem[] =
+          JSON.parse(savedCart);
 
         const totalItems = cart.reduce(
-          (total, item) => total + item.quantity,
+          (total, item) =>
+            total + item.quantity,
           0
         );
 
@@ -43,12 +51,26 @@ export default function Navbar() {
 
     updateCartCount();
 
-    window.addEventListener("storage", updateCartCount);
-    window.addEventListener("cart-updated", updateCartCount);
+    window.addEventListener(
+      "storage",
+      updateCartCount
+    );
+
+    window.addEventListener(
+      "cart-updated",
+      updateCartCount
+    );
 
     return () => {
-      window.removeEventListener("storage", updateCartCount);
-      window.removeEventListener("cart-updated", updateCartCount);
+      window.removeEventListener(
+        "storage",
+        updateCartCount
+      );
+
+      window.removeEventListener(
+        "cart-updated",
+        updateCartCount
+      );
     };
   }, []);
 
@@ -60,7 +82,10 @@ export default function Navbar() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (user?.email === "voidmarket.ro@gmail.com") {
+      if (
+        user?.email ===
+        "voidmarket.ro@gmail.com"
+      ) {
         setAdminHref("/admin");
       } else {
         setAdminHref("/admin/login");
@@ -73,82 +98,182 @@ export default function Navbar() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (
-        session?.user?.email ===
-        "voidmarket.ro@gmail.com"
-      ) {
-        setAdminHref("/admin");
-      } else {
-        setAdminHref("/admin/login");
-      }
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (
+          session?.user?.email ===
+          "voidmarket.ro@gmail.com"
+        ) {
+          setAdminHref("/admin");
+        } else {
+          setAdminHref("/admin/login");
+        }
 
-      setCheckingAdmin(false);
-    });
+        setCheckingAdmin(false);
+      }
+    );
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-zinc-800 bg-black/90 px-6 py-5 text-white backdrop-blur md:px-10">
-      <Link
-        href="/"
-        className="text-xl font-bold tracking-[0.25em] md:text-3xl"
-      >
-        VOID MARKET
-      </Link>
+  function closeMobileMenu() {
+    setMobileOpen(false);
+  }
 
-      <div className="flex items-center gap-4 text-sm md:gap-8 md:text-lg">
+  return (
+    <nav className="sticky top-0 z-50 border-b border-zinc-800 bg-black/90 text-white backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 md:px-10">
         <Link
           href="/"
-          className="transition hover:text-zinc-400"
+          onClick={closeMobileMenu}
+          className="text-xl font-bold tracking-[0.25em] md:text-3xl"
         >
-          Acasă
+          VOID MARKET
         </Link>
 
-        <Link
-          href="/#magazin"
-          className="transition hover:text-zinc-400"
+        <button
+          type="button"
+          onClick={() =>
+            setMobileOpen((current) => !current)
+          }
+          className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold md:hidden"
+          aria-label="Deschide meniul"
+          aria-expanded={mobileOpen}
         >
-          Magazin
-        </Link>
+          {mobileOpen ? "Închide" : "Meniu"}
+        </button>
 
-        <Link
-          href="/#recenzii"
-          className="transition hover:text-zinc-400"
-        >
-          Recenzii
-        </Link>
+        <div className="hidden items-center gap-7 text-sm lg:flex lg:text-base">
+          <Link
+            href="/"
+            className="transition hover:text-zinc-400"
+          >
+            Acasă
+          </Link>
 
-        <Link
-          href="/#contact"
-          className="transition hover:text-zinc-400"
-        >
-          Contact
-        </Link>
+          <Link
+            href="/#magazin"
+            className="transition hover:text-zinc-400"
+          >
+            Magazin
+          </Link>
 
-        <Link
-          href={adminHref}
-          className="rounded-xl border border-zinc-800 px-3 py-2 text-xs text-zinc-500 transition hover:border-zinc-600 hover:text-white md:text-sm"
-        >
-          {checkingAdmin ? "Admin..." : "Admin"}
-        </Link>
+          <Link
+            href="/#recenzii"
+            className="transition hover:text-zinc-400"
+          >
+            Recenzii
+          </Link>
 
-        <Link
-          href="/cos"
-          className="relative rounded-xl border border-zinc-700 px-4 py-2 transition hover:border-white"
-        >
-          Coș
+          <Link
+            href="/#contact"
+            className="transition hover:text-zinc-400"
+          >
+            Contact
+          </Link>
 
-          {cartCount > 0 && (
-            <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-xs font-bold text-black">
-              {cartCount}
-            </span>
-          )}
-        </Link>
+          <Link
+            href="/track-order"
+            className="rounded-xl border border-zinc-700 px-4 py-2 font-semibold transition hover:border-white"
+          >
+            Urmărește comanda
+          </Link>
+
+          <Link
+            href={adminHref}
+            className="rounded-xl border border-zinc-800 px-3 py-2 text-xs text-zinc-500 transition hover:border-zinc-600 hover:text-white"
+          >
+            {checkingAdmin
+              ? "Admin..."
+              : "Admin"}
+          </Link>
+
+          <Link
+            href="/cos"
+            className="relative rounded-xl border border-zinc-700 px-4 py-2 transition hover:border-white"
+          >
+            Coș
+
+            {cartCount > 0 && (
+              <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-xs font-bold text-black">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+        </div>
       </div>
+
+      {mobileOpen && (
+        <div className="border-t border-zinc-800 px-6 py-5 lg:hidden">
+          <div className="flex flex-col gap-3">
+            <Link
+              href="/"
+              onClick={closeMobileMenu}
+              className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
+            >
+              Acasă
+            </Link>
+
+            <Link
+              href="/#magazin"
+              onClick={closeMobileMenu}
+              className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
+            >
+              Magazin
+            </Link>
+
+            <Link
+              href="/#recenzii"
+              onClick={closeMobileMenu}
+              className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
+            >
+              Recenzii
+            </Link>
+
+            <Link
+              href="/#contact"
+              onClick={closeMobileMenu}
+              className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
+            >
+              Contact
+            </Link>
+
+            <Link
+              href="/track-order"
+              onClick={closeMobileMenu}
+              className="rounded-xl border border-zinc-700 px-4 py-3 font-semibold transition hover:border-white"
+            >
+              Urmărește comanda
+            </Link>
+
+            <Link
+              href={adminHref}
+              onClick={closeMobileMenu}
+              className="rounded-xl border border-zinc-800 px-4 py-3 text-zinc-500 transition hover:border-zinc-600 hover:text-white"
+            >
+              {checkingAdmin
+                ? "Admin..."
+                : "Admin"}
+            </Link>
+
+            <Link
+              href="/cos"
+              onClick={closeMobileMenu}
+              className="flex items-center justify-between rounded-xl border border-zinc-700 px-4 py-3 transition hover:border-white"
+            >
+              <span>Coș</span>
+
+              {cartCount > 0 && (
+                <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-xs font-bold text-black">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

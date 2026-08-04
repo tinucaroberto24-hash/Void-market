@@ -22,14 +22,13 @@ export default function SuccessContent() {
 
   const [order, setOrder] =
     useState<CardOrder | null>(null);
-
   const [loading, setLoading] =
     useState(true);
-
   const [error, setError] =
     useState("");
-
   const [copied, setCopied] =
+    useState(false);
+  const [showToast, setShowToast] =
     useState(false);
 
   useEffect(() => {
@@ -102,7 +101,6 @@ export default function SuccessContent() {
             loadOrder,
             1500
           );
-
           return;
         }
 
@@ -171,10 +169,11 @@ export default function SuccessContent() {
       );
 
       setCopied(true);
+      setShowToast(true);
 
-      setTimeout(() => {
-        setCopied(false);
-      }, 2000);
+      window.setTimeout(() => {
+        setShowToast(false);
+      }, 5000);
     } catch (copyError) {
       console.error(
         "ID-ul nu a putut fi copiat:",
@@ -186,6 +185,12 @@ export default function SuccessContent() {
   return (
     <main className="min-h-screen bg-black text-white">
       <Navbar />
+
+      {showToast && (
+        <div className="fixed right-5 top-24 z-[100] rounded-2xl border border-green-800 bg-green-950 px-5 py-4 text-sm font-semibold text-green-300 shadow-2xl">
+          ✓ ID-ul comenzii a fost copiat.
+        </div>
+      )}
 
       <section className="mx-auto max-w-3xl px-6 py-24 text-center">
         <div className="rounded-3xl border border-zinc-800 bg-zinc-950 px-6 py-20">
@@ -250,10 +255,14 @@ export default function SuccessContent() {
               <button
                 type="button"
                 onClick={copyOrderId}
-                className="mt-5 rounded-xl bg-white px-5 py-3 font-bold text-black transition hover:bg-zinc-200"
+                className={`mt-5 rounded-xl px-5 py-3 font-bold transition ${
+                  copied
+                    ? "border border-green-700 bg-green-950 text-green-300"
+                    : "bg-white text-black hover:bg-zinc-200"
+                }`}
               >
                 {copied
-                  ? "ID copiat"
+                  ? "✓ ID copiat"
                   : "Copiază ID-ul"}
               </button>
 

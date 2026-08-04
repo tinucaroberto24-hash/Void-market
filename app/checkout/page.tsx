@@ -318,6 +318,8 @@ export default function CheckoutPage() {
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [orderId, setOrderId] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     const savedCart = localStorage.getItem("void-market-cart");
@@ -589,8 +591,19 @@ ${form.notes || "Fără observații"}
       localStorage.removeItem("void-market-cart");
       window.dispatchEvent(new Event("cart-updated"));
 
+      const finalOrderId = result.orderId ?? orderId;
+
       setCart([]);
-      setOrderId(result.orderId ?? orderId);
+      setOrderId(finalOrderId);
+
+      localStorage.setItem(
+        "void-market-last-order",
+        JSON.stringify({
+          orderId: finalOrderId,
+          email: form.email,
+        })
+      );
+
       setSuccess(true);
     } catch (submitError: unknown) {
       console.error(submitError);
@@ -691,6 +704,12 @@ ${form.notes || "Fără observații"}
       <main className="min-h-screen bg-black text-white">
         <Navbar />
 
+        {showToast && (
+          <div className="fixed right-5 top-24 z-[100] rounded-2xl border border-green-800 bg-green-950 px-5 py-4 text-sm font-semibold text-green-300 shadow-2xl">
+            ✓ ID-ul comenzii a fost copiat.
+          </div>
+        )}
+
         <section className="mx-auto max-w-3xl px-6 py-24 text-center">
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950 px-6 py-20">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-3xl text-black">
@@ -730,6 +749,12 @@ ${form.notes || "Fără observații"}
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(orderId);
+                      setCopied(true);
+                      setShowToast(true);
+
+                      window.setTimeout(() => {
+                        setShowToast(false);
+                      }, 5000);
                     } catch (copyError) {
                       console.error(
                         "ID-ul comenzii nu a putut fi copiat:",
@@ -737,9 +762,13 @@ ${form.notes || "Fără observații"}
                       );
                     }
                   }}
-                  className="mt-5 rounded-xl bg-white px-5 py-3 font-bold text-black transition hover:bg-zinc-200"
+                  className={`mt-5 rounded-xl px-5 py-3 font-bold transition ${
+                    copied
+                      ? "border border-green-700 bg-green-950 text-green-300"
+                      : "bg-white text-black hover:bg-zinc-200"
+                  }`}
                 >
-                  Copiază ID-ul
+                  {copied ? "✓ ID copiat" : "Copiază ID-ul"}
                 </button>
 
                 <Link
