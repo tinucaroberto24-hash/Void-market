@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  useEffect,
   useState,
 } from "react";
 import Link from "next/link";
@@ -30,6 +31,11 @@ type Order = {
   transport: number;
   total: number;
   items: OrderItem[];
+};
+
+type SavedOrder = {
+  orderId?: string;
+  email?: string;
 };
 
 function formatDate(date: string) {
@@ -84,20 +90,49 @@ function getStatusMessage(status: string) {
 }
 
 export default function TrackOrderPage() {
-  const [email, setEmail] =
-    useState("");
-
-  const [orderId, setOrderId] =
-    useState("");
-
+  const [email, setEmail] = useState("");
+  const [orderId, setOrderId] = useState("");
   const [order, setOrder] =
     useState<Order | null>(null);
-
   const [loading, setLoading] =
     useState(false);
+  const [error, setError] = useState("");
+  const [prefilled, setPrefilled] =
+    useState(false);
 
-  const [error, setError] =
-    useState("");
+  useEffect(() => {
+    const savedOrder = localStorage.getItem(
+      "void-market-last-order"
+    );
+
+    if (!savedOrder) {
+      return;
+    }
+
+    try {
+      const parsed: SavedOrder =
+        JSON.parse(savedOrder);
+
+      if (parsed.email) {
+        setEmail(parsed.email);
+      }
+
+      if (parsed.orderId) {
+        setOrderId(parsed.orderId);
+      }
+
+      if (
+        parsed.email &&
+        parsed.orderId
+      ) {
+        setPrefilled(true);
+      }
+    } catch {
+      localStorage.removeItem(
+        "void-market-last-order"
+      );
+    }
+  }, []);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
@@ -153,6 +188,14 @@ export default function TrackOrderPage() {
       }
 
       setOrder(result.order);
+
+      localStorage.setItem(
+        "void-market-last-order",
+        JSON.stringify({
+          orderId: result.order.id,
+          email: result.order.email,
+        })
+      );
     } catch (searchError) {
       console.error(searchError);
 
@@ -171,6 +214,7 @@ export default function TrackOrderPage() {
     setError("");
     setEmail("");
     setOrderId("");
+    setPrefilled(false);
   }
 
   return (
@@ -199,6 +243,12 @@ export default function TrackOrderPage() {
             onSubmit={handleSubmit}
             className="mx-auto mt-12 max-w-2xl rounded-3xl border border-zinc-800 bg-zinc-950 p-6 md:p-10"
           >
+            {prefilled && (
+              <div className="mb-6 rounded-xl border border-green-900 bg-green-950/30 px-4 py-3 text-sm text-green-300">
+                Am completat automat ultima comandă salvată pe acest dispozitiv.
+              </div>
+            )}
+
             <label className="block">
               <span className="mb-2 block text-sm text-zinc-400">
                 Emailul folosit la comandă
@@ -225,9 +275,7 @@ export default function TrackOrderPage() {
                 type="text"
                 value={orderId}
                 onChange={(event) =>
-                  setOrderId(
-                    event.target.value
-                  )
+                  setOrderId(event.target.value)
                 }
                 placeholder="Exemplu: 7c2f...-..."
                 required
@@ -377,7 +425,6 @@ export default function TrackOrderPage() {
 
                     <div className="flex justify-between text-zinc-400">
                       <span>Subtotal</span>
-
                       <span>
                         {order.subtotal} Lei
                       </span>
@@ -385,7 +432,6 @@ export default function TrackOrderPage() {
 
                     <div className="flex justify-between text-zinc-400">
                       <span>Transport</span>
-
                       <span>
                         {order.transport} Lei
                       </span>
@@ -393,7 +439,6 @@ export default function TrackOrderPage() {
 
                     <div className="flex justify-between border-t border-zinc-800 pt-5 text-xl font-black">
                       <span>Total</span>
-
                       <span>
                         {order.total} Lei
                       </span>
