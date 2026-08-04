@@ -26,7 +26,10 @@ const SEGMENTS = [
   { label: "20%", value: 20 },
 ];
 
-function getTargetRotation(discountPercent: number) {
+function getTargetRotation(
+  currentRotation: number,
+  discountPercent: number
+) {
   const matchingIndexes = SEGMENTS
     .map((segment, index) =>
       segment.value === discountPercent ? index : -1
@@ -42,7 +45,19 @@ function getTargetRotation(discountPercent: number) {
   const segmentCenter =
     selectedIndex * segmentAngle + segmentAngle / 2;
 
-  return 360 * 6 + (360 - segmentCenter);
+  const currentNormalized =
+    ((currentRotation % 360) + 360) % 360;
+
+  const desiredNormalized =
+    (360 - segmentCenter) % 360;
+
+  const correction =
+    (desiredNormalized -
+      currentNormalized +
+      360) %
+    360;
+
+  return currentRotation + 360 * 6 + correction;
 }
 
 export default function VoucherFloatingButton() {
@@ -57,6 +72,8 @@ export default function VoucherFloatingButton() {
   const [rotation, setRotation] =
     useState(0);
   const [error, setError] = useState("");
+  const [wonVoucher, setWonVoucher] =
+    useState<Voucher | null>(null);
 
   useEffect(() => {
     function loadSavedVoucher() {
@@ -171,27 +188,16 @@ export default function VoucherFloatingButton() {
 
       const wonVoucher = result.voucher;
 
-      setRotation(
-        (current) =>
-          current +
-          getTargetRotation(
-            wonVoucher.discountPercent
-          )
+      setRotation((current) =>
+        getTargetRotation(
+          current,
+          wonVoucher.discountPercent
+        )
       );
 
       window.setTimeout(() => {
-        localStorage.setItem(
-          "void-market-voucher",
-          JSON.stringify(wonVoucher)
-        );
-
-        setVoucher(wonVoucher);
+        setWonVoucher(wonVoucher);
         setSpinning(false);
-        setOpen(false);
-
-        window.dispatchEvent(
-          new Event("voucher-updated")
-        );
       }, 4200);
     } catch (spinError) {
       console.error(spinError);
@@ -204,6 +210,25 @@ export default function VoucherFloatingButton() {
 
       setSpinning(false);
     }
+  }
+
+  function continueAfterWin() {
+    if (!wonVoucher) {
+      return;
+    }
+
+    localStorage.setItem(
+      "void-market-voucher",
+      JSON.stringify(wonVoucher)
+    );
+
+    setVoucher(wonVoucher);
+    setWonVoucher(null);
+    setOpen(false);
+
+    window.dispatchEvent(
+      new Event("voucher-updated")
+    );
   }
 
   if (!loaded) {
@@ -312,7 +337,7 @@ export default function VoucherFloatingButton() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                disabled={spinning}
+                disabled={spinning || Boolean(wonVoucher)}
                 className="rounded-xl border border-zinc-700 px-4 py-2 text-sm transition hover:border-white disabled:opacity-40"
               >
                 Închide
@@ -332,36 +357,55 @@ export default function VoucherFloatingButton() {
                 }}
               >
                 {SEGMENTS.map(
-                  (segment, index) => {
-                    const angle =
-                      index *
-                        (360 /
-                          SEGMENTS.length) +
-                      360 /
-                        SEGMENTS.length /
-                        2;
+                    (segment, index) => {
+                      const segmentAngle =
+                        360 / SEGMENTS.length;
 
-                    return (
-                      <div
-                        key={`${segment.label}-${index}`}
-                        className="absolute left-1/2 top-1/2 origin-left font-black"
-                        style={{
-                          transform: `rotate(${angle}deg) translateX(48px)`,
-                        }}
-                      >
-                        <span
-                          className={
-                            index % 2 === 0
-                              ? "text-black"
-                              : "text-white"
-                          }
+                      const centerAngle =
+                        index * segmentAngle +
+                        segmentAngle / 2;
+
+                      const radians =
+                        ((centerAngle - 90) *
+                          Math.PI) /
+                        180;
+
+                      const radius = 34;
+
+                      const left =
+                        50 +
+                        Math.cos(radians) *
+                          radius;
+
+                      const top =
+                        50 +
+                        Math.sin(radians) *
+                          radius;
+
+                      return (
+                        <div
+                          key={`${segment.label}-${index}`}
+                          className="absolute flex h-10 w-14 items-center justify-center text-lg font-black"
+                          style={{
+                            left: `${left}%`,
+                            top: `${top}%`,
+                            transform:
+                              "translate(-50%, -50%)",
+                          }}
                         >
-                          {segment.label}
-                        </span>
-                      </div>
-                    );
-                  }
-                )}
+                          <span
+                            className={
+                              index % 2 === 0
+                                ? "text-black"
+                                : "text-white"
+                            }
+                          >
+                            {segment.label}
+                          </span>
+                        </div>
+                      );
+                    }
+                  )}
 
                 <div className="absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-zinc-800 bg-black text-xs font-black tracking-widest">
                   VOID
@@ -369,13 +413,39 @@ export default function VoucherFloatingButton() {
               </div>
             </div>
 
+            {wonVoucher && (
+              <div className="mt-6 rounded-2xl border border-green-800 bg-green-950/40 p-6 text-center">
+                <p className="text-sm uppercase tracking-[0.25em] text-green-400">
+                  Felicitări!
+                </p>
+
+                <h3 className="mt-3 text-3xl font-black">
+                  Ai câștigat {wonVoucher.discountPercent}% reducere
+                </h3>
+
+                <p className="mt-3 text-sm leading-6 text-zinc-400">
+                  Apasă „Continuă” pentru a salva voucherul.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={continueAfterWin}
+                  className="mt-5 w-full rounded-xl bg-white px-6 py-4 font-bold text-black transition hover:bg-zinc-200"
+                >
+                  Continuă
+                </button>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={spinWheel}
               disabled={spinning}
               className="mt-8 w-full rounded-xl bg-white px-6 py-4 font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {spinning
+              {wonVoucher
+                ? "Rezultat obținut"
+                : spinning
                 ? "Roata se învârte..."
                 : "Învârte roata"}
             </button>

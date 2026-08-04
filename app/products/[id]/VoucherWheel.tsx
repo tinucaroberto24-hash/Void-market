@@ -30,7 +30,10 @@ const SEGMENTS = [
   { label: "20%", value: 20 },
 ];
 
-function getTargetRotation(discountPercent: number) {
+function getTargetRotation(
+  currentRotation: number,
+  discountPercent: number
+) {
   const matchingIndexes = SEGMENTS
     .map((segment, index) =>
       segment.value === discountPercent ? index : -1
@@ -46,7 +49,19 @@ function getTargetRotation(discountPercent: number) {
   const segmentCenter =
     selectedIndex * segmentAngle + segmentAngle / 2;
 
-  return 360 * 6 + (360 - segmentCenter);
+  const currentNormalized =
+    ((currentRotation % 360) + 360) % 360;
+
+  const desiredNormalized =
+    (360 - segmentCenter) % 360;
+
+  const correction =
+    (desiredNormalized -
+      currentNormalized +
+      360) %
+    360;
+
+  return currentRotation + 360 * 6 + correction;
 }
 
 export default function VoucherWheel({
@@ -153,8 +168,8 @@ export default function VoucherWheel({
 
       const wonVoucher = result.voucher;
       const targetRotation =
-        rotation +
         getTargetRotation(
+          rotation,
           wonVoucher.discountPercent
         );
 
@@ -255,21 +270,39 @@ export default function VoucherWheel({
                 >
                   {SEGMENTS.map(
                     (segment, index) => {
-                      const angle =
-                        index *
-                          (360 /
-                            SEGMENTS.length) +
-                        360 /
-                          SEGMENTS.length /
-                          2 -
-                        90;
+                      const segmentAngle =
+                        360 / SEGMENTS.length;
+
+                      const centerAngle =
+                        index * segmentAngle +
+                        segmentAngle / 2;
+
+                      const radians =
+                        ((centerAngle - 90) *
+                          Math.PI) /
+                        180;
+
+                      const radius = 34;
+
+                      const left =
+                        50 +
+                        Math.cos(radians) *
+                          radius;
+
+                      const top =
+                        50 +
+                        Math.sin(radians) *
+                          radius;
 
                       return (
                         <div
                           key={`${segment.label}-${index}`}
-                          className="absolute left-1/2 top-1/2 origin-left font-black"
+                          className="absolute flex h-10 w-14 items-center justify-center text-lg font-black"
                           style={{
-                            transform: `rotate(${angle}deg) translateX(82px)`,
+                            left: `${left}%`,
+                            top: `${top}%`,
+                            transform:
+                              "translate(-50%, -50%)",
                           }}
                         >
                           <span
