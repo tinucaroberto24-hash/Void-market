@@ -17,13 +17,14 @@ export default async function ProductPage({
 
   const supabase = await createClient();
 
-  const { data: product, error } = await supabase
-    .from("products")
-    .select(
-      "id, name, brand, price, size, condition, description, image, stock"
-    )
-    .eq("id", id)
-    .single();
+  const { data: product, error } =
+    await supabase
+      .from("products")
+      .select(
+        "id, name, brand, price, size, condition, description, image, stock"
+      )
+      .eq("id", id)
+      .single();
 
   if (error || !product) {
     notFound();
@@ -68,19 +69,21 @@ export default async function ProductPage({
               {product.name}
             </h1>
 
-            <p className="mt-8 text-4xl font-bold">
-              {product.price} Lei
-            </p>
-
             <div className="mt-8 space-y-3 border-y border-zinc-800 py-8">
               <p>
-                <span className="text-zinc-500">Mărime:</span>{" "}
+                <span className="text-zinc-500">
+                  Mărime:
+                </span>{" "}
                 <strong>{product.size}</strong>
               </p>
 
               <p>
-                <span className="text-zinc-500">Stare:</span>{" "}
-                <strong>{product.condition}</strong>
+                <span className="text-zinc-500">
+                  Stare:
+                </span>{" "}
+                <strong>
+                  {product.condition}
+                </strong>
               </p>
 
               <p>
@@ -89,10 +92,14 @@ export default async function ProductPage({
                 </span>{" "}
                 <strong
                   className={
-                    inStock ? "text-green-400" : "text-red-400"
+                    inStock
+                      ? "text-green-400"
+                      : "text-red-400"
                   }
                 >
-                  {inStock ? `În stoc (${stock})` : "Stoc epuizat"}
+                  {inStock
+                    ? `În stoc (${stock})`
+                    : "Stoc epuizat"}
                 </strong>
               </p>
             </div>
@@ -115,12 +122,18 @@ export default async function ProductPage({
                 }}
               />
             ) : (
-              <button
-                disabled
-                className="mt-10 cursor-not-allowed rounded-xl bg-zinc-800 px-8 py-4 text-lg font-bold text-zinc-500"
-              >
-                Stoc epuizat
-              </button>
+              <>
+                <p className="mt-8 text-4xl font-black">
+                  {product.price} Lei
+                </p>
+
+                <button
+                  disabled
+                  className="mt-10 cursor-not-allowed rounded-xl bg-zinc-800 px-8 py-4 text-lg font-bold text-zinc-500"
+                >
+                  Stoc epuizat
+                </button>
+              </>
             )}
           </div>
         </div>
