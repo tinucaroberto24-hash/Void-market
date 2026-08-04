@@ -1,15 +1,34 @@
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
-  const products = [
-    {
-      name: "Louis Vuitton LV Sweatshirt",
-      price: "250 Lei",
-      size: "S",
-      image: "/lv/front.jpeg",
-      href: "/products/lv-sweatshirt",
-    },
-  ];
+type Product = {
+  id: string;
+  name: string;
+  brand: string;
+  price: number;
+  size: string;
+  condition: string;
+  description: string | null;
+  image: string | null;
+  stock: number | null;
+};
+
+export default async function Home() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("products")
+    .select(
+      "id, name, brand, price, size, condition, description, image, stock"
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Eroare la încărcarea produselor:", error);
+  }
+
+  const products: Product[] = data ?? [];
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -38,7 +57,7 @@ export default function Home() {
         id="magazin"
         className="mx-auto max-w-7xl px-6 py-20"
       >
-        <div className="mb-12 flex items-end justify-between">
+        <div className="mb-12 flex items-end justify-between gap-6">
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">
               Disponibil acum
@@ -50,47 +69,92 @@ export default function Home() {
           </div>
 
           <p className="text-zinc-500">
-            {products.length} produs în stoc
+            {products.length}{" "}
+            {products.length === 1 ? "produs" : "produse"} în magazin
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
-            <a
-              key={product.name}
-              href={product.href}
-              className="group overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900 transition hover:-translate-y-2 hover:border-white"
-            >
-              <div className="overflow-hidden bg-zinc-950">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="h-96 w-full object-contain transition duration-500 group-hover:scale-105"
-                />
-              </div>
+        {products.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-zinc-700 px-6 py-20 text-center">
+            <h3 className="text-2xl font-bold">
+              Nu există produse momentan
+            </h3>
 
-              <div className="p-6">
-                <h3 className="text-2xl font-bold">
-                  {product.name}
-                </h3>
+            <p className="mt-3 text-zinc-500">
+              Produsele adăugate din panoul Admin vor apărea aici.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => {
+              const inStock = (product.stock ?? 0) > 0;
 
-                <p className="mt-2 text-zinc-400">
-                  Mărime {product.size}
-                </p>
+              return (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.id}`}
+                  className="group block overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900 transition hover:-translate-y-2 hover:border-white"
+                >
+                  <div className="flex h-96 items-center justify-center overflow-hidden bg-zinc-950">
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="px-6 text-center text-zinc-600">
+                        <p className="text-lg font-semibold">
+                          Imagine indisponibilă
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
-                <div className="mt-6 flex items-center justify-between">
-                  <span className="text-2xl font-bold">
-                    {product.price}
-                  </span>
+                  <div className="p-6">
+                    <p className="text-sm uppercase tracking-[0.2em] text-zinc-500">
+                      {product.brand}
+                    </p>
 
-                  <span className="rounded-xl bg-white px-5 py-2 font-bold text-black">
-                    Vezi produsul
-                  </span>
-                </div>
-              </div>
-            </a>
-          ))}
-        </div>
+                    <h3 className="mt-2 text-2xl font-bold">
+                      {product.name}
+                    </h3>
+
+                    <p className="mt-3 text-zinc-400">
+                      Mărime {product.size}
+                    </p>
+
+                    <p className="mt-1 text-sm text-zinc-500">
+                      {product.condition}
+                    </p>
+
+                    {product.description && (
+                      <p className="mt-4 line-clamp-3 text-sm leading-6 text-zinc-400">
+                        {product.description}
+                      </p>
+                    )}
+
+                    <div className="mt-6 flex items-center justify-between gap-4">
+                      <span className="text-2xl font-bold">
+                        {product.price} Lei
+                      </span>
+
+                      <span
+                        className={`rounded-xl px-4 py-2 text-sm font-bold ${
+                          inStock
+                            ? "bg-white text-black"
+                            : "bg-zinc-800 text-zinc-500"
+                        }`}
+                      >
+                        {inStock ? "Vezi produsul" : "Stoc epuizat"}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* RECENZII */}
@@ -111,7 +175,7 @@ export default function Home() {
 
           <div className="mt-14 grid gap-8 md:grid-cols-3">
             <article className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-              <p className="text-yellow-400 text-xl">★★★★★</p>
+              <p className="text-xl text-yellow-400">★★★★★</p>
 
               <p className="mt-5 leading-7 text-zinc-300">
                 Produsul a ajuns exact ca în poze și a fost ambalat foarte bine.
@@ -125,7 +189,7 @@ export default function Home() {
             </article>
 
             <article className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-              <p className="text-yellow-400 text-xl">★★★★★</p>
+              <p className="text-xl text-yellow-400">★★★★★</p>
 
               <p className="mt-5 leading-7 text-zinc-300">
                 Coletul a venit repede, iar produsul a fost exact cum era descris.
@@ -138,7 +202,7 @@ export default function Home() {
             </article>
 
             <article className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-              <p className="text-yellow-400 text-xl">★★★★★</p>
+              <p className="text-xl text-yellow-400">★★★★★</p>
 
               <p className="mt-5 leading-7 text-zinc-300">
                 Foarte mulțumit de comandă. Aș cumpăra din nou.
@@ -152,13 +216,13 @@ export default function Home() {
           </div>
         </div>
       </section>
-            {/* CONTACT */}
+
+      {/* CONTACT */}
       <section
         id="contact"
         className="border-t border-zinc-800 px-6 py-24"
       >
         <div className="mx-auto max-w-4xl text-center">
-
           <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">
             Ai nevoie de ajutor?
           </p>
@@ -173,24 +237,22 @@ export default function Home() {
           </p>
 
           <div className="mx-auto mt-12 max-w-xl rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-
             <p className="text-sm uppercase tracking-[0.25em] text-zinc-500">
               Email
             </p>
 
-            <p className="mt-4 text-xl font-bold break-all">
+            <p className="mt-4 break-all text-xl font-bold">
               voidmarket.ro@gmail.com
             </p>
 
             <a
-              href="https://mail.google.com/mail/?view=cm&fs=1&to=voidmarket.ro@gmail.com&su=Întrebare%20VOID%20MARKET"
+              href="https://mail.google.com/mail/?view=cm&fs=1&to=voidmarket.ro@gmail.com"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-8 inline-block rounded-xl bg-white px-8 py-4 font-bold text-black transition hover:scale-105 hover:bg-zinc-200"
             >
               TRIMITE MESAJ
             </a>
-
           </div>
         </div>
       </section>
@@ -198,7 +260,6 @@ export default function Home() {
       <footer className="border-t border-zinc-800 px-6 py-8 text-center text-zinc-500">
         © 2026 VOID MARKET
       </footer>
-
     </main>
   );
 }
