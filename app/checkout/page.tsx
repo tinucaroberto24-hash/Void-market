@@ -549,6 +549,7 @@ ${form.notes || "Fără observații"}
 
   async function handleCardPayment() {
     setSending(true);
+    setError("");
 
     try {
       const response = await fetch("/api/checkout", {
@@ -565,6 +566,10 @@ ${form.notes || "Fără observații"}
           city: selectedCity,
           deliveryMethod: "fan",
           deliveryAddress: getDeliveryAddress(),
+          items: cart.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+          })),
         }),
       });
 
