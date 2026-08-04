@@ -44,6 +44,21 @@ export default async function AdminPage() {
     );
   }
 
+  const { count: ordersCount, error: ordersError } =
+    await supabase
+      .from("orders")
+      .select("*", {
+        count: "exact",
+        head: true,
+      });
+
+  if (ordersError) {
+    console.error(
+      "Eroare la numărarea comenzilor:",
+      ordersError
+    );
+  }
+
   const products: Product[] = data ?? [];
 
   return (
@@ -89,18 +104,29 @@ export default async function AdminPage() {
             </p>
 
             <h2 className="mt-4 text-5xl font-bold">
-              0
+              {ordersCount ?? 0}
             </h2>
+
+            <Link
+              href="/admin/orders"
+              className="mt-5 inline-block rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold transition hover:border-white"
+            >
+              Vezi comenzile
+            </Link>
           </article>
 
           <article className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
             <p className="text-zinc-400">
-              Venit
+              Venit real
             </p>
 
             <h2 className="mt-4 text-5xl font-bold">
               0 Lei
             </h2>
+
+            <p className="mt-3 text-xs text-zinc-500">
+              Plățile din Stripe Sandbox nu sunt bani reali.
+            </p>
           </article>
         </section>
 
@@ -116,12 +142,21 @@ export default async function AdminPage() {
               </p>
             </div>
 
-            <Link
-              href="/admin/products/new"
-              className="rounded-xl bg-white px-6 py-3 text-center font-bold text-black transition hover:bg-zinc-200"
-            >
-              + Adaugă produs
-            </Link>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/admin/orders"
+                className="rounded-xl border border-zinc-700 px-6 py-3 text-center font-bold transition hover:border-white"
+              >
+                Vezi comenzile
+              </Link>
+
+              <Link
+                href="/admin/products/new"
+                className="rounded-xl bg-white px-6 py-3 text-center font-bold text-black transition hover:bg-zinc-200"
+              >
+                + Adaugă produs
+              </Link>
+            </div>
           </div>
 
           {products.length === 0 ? (

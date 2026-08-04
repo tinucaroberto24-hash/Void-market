@@ -553,7 +553,22 @@ ${form.notes || "Fără observații"}
         }),
       });
 
-      const result = await response.json();
+      const responseText = await response.text();
+
+      let result: {
+        success?: boolean;
+        error?: string;
+        orderId?: string;
+      };
+
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          responseText ||
+            "Ruta pentru comenzile ramburs a returnat un răspuns invalid."
+        );
+      }
 
       if (!response.ok || !result.success) {
         throw new Error(
@@ -561,7 +576,14 @@ ${form.notes || "Fără observații"}
         );
       }
 
-      await sendOrderEmail("Ramburs");
+      try {
+        await sendOrderEmail("Ramburs");
+      } catch (emailError) {
+        console.error(
+          "Comanda a fost salvată, dar emailul nu a putut fi trimis:",
+          emailError
+        );
+      }
 
       localStorage.removeItem("void-market-cart");
       window.dispatchEvent(new Event("cart-updated"));
