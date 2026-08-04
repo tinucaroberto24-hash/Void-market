@@ -63,6 +63,8 @@ export default function VoucherWheel({
   const [error, setError] = useState("");
   const [copied, setCopied] =
     useState(false);
+  const [wonVoucher, setWonVoucher] =
+    useState<Voucher | null>(null);
 
   useEffect(() => {
     const savedVoucher = localStorage.getItem(
@@ -159,13 +161,7 @@ export default function VoucherWheel({
       setRotation(targetRotation);
 
       window.setTimeout(() => {
-        setVoucher(wonVoucher);
-
-        localStorage.setItem(
-          "void-market-voucher",
-          JSON.stringify(wonVoucher)
-        );
-
+        setWonVoucher(wonVoucher);
         setSpinning(false);
       }, 4200);
     } catch (spinError) {
@@ -179,6 +175,24 @@ export default function VoucherWheel({
 
       setSpinning(false);
     }
+  }
+
+  function continueAfterWin() {
+    if (!wonVoucher) {
+      return;
+    }
+
+    localStorage.setItem(
+      "void-market-voucher",
+      JSON.stringify(wonVoucher)
+    );
+
+    setVoucher(wonVoucher);
+    setWonVoucher(null);
+
+    window.dispatchEvent(
+      new Event("voucher-updated")
+    );
   }
 
   async function copyCode() {
@@ -247,14 +261,15 @@ export default function VoucherWheel({
                             SEGMENTS.length) +
                         360 /
                           SEGMENTS.length /
-                          2;
+                          2 -
+                        90;
 
                       return (
                         <div
                           key={`${segment.label}-${index}`}
                           className="absolute left-1/2 top-1/2 origin-left font-black"
                           style={{
-                            transform: `rotate(${angle}deg) translateX(48px)`,
+                            transform: `rotate(${angle}deg) translateX(82px)`,
                           }}
                         >
                           <span
@@ -277,13 +292,39 @@ export default function VoucherWheel({
                 </div>
               </div>
 
+              {wonVoucher && (
+                <div className="mt-6 rounded-2xl border border-green-800 bg-green-950/40 p-6 text-center">
+                  <p className="text-sm uppercase tracking-[0.25em] text-green-400">
+                    Felicitări!
+                  </p>
+
+                  <h3 className="mt-3 text-3xl font-black">
+                    Ai câștigat {wonVoucher.discountPercent}% reducere
+                  </h3>
+
+                  <p className="mt-3 text-sm leading-6 text-zinc-400">
+                    Apasă „Continuă” pentru a salva voucherul și a-l folosi la produs.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={continueAfterWin}
+                    className="mt-5 w-full rounded-xl bg-white px-6 py-4 font-bold text-black transition hover:bg-zinc-200"
+                  >
+                    Continuă
+                  </button>
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={spinWheel}
-                disabled={spinning}
+                disabled={spinning || Boolean(wonVoucher)}
                 className="mt-8 w-full rounded-xl bg-white px-6 py-4 font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {spinning
+                {wonVoucher
+                  ? "Rezultat obținut"
+                  : spinning
                   ? "Roata se învârte..."
                   : "Învârte roata"}
               </button>
