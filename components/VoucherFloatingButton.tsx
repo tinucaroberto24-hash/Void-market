@@ -437,18 +437,18 @@ export default function VoucherFloatingButton() {
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={spinWheel}
-              disabled={spinning}
-              className="mt-8 w-full rounded-xl bg-white px-6 py-4 font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {wonVoucher
-                ? "Rezultat obținut"
-                : spinning
-                ? "Roata se învârte..."
-                : "Învârte roata"}
-            </button>
+            {!wonVoucher && (
+              <button
+                type="button"
+                onClick={spinWheel}
+                disabled={spinning}
+                className="mt-8 w-full rounded-xl bg-white px-6 py-4 font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {spinning
+                  ? "Roata se învârte..."
+                  : "Învârte roata"}
+              </button>
+            )}
 
             {error && (
               <p className="mt-5 rounded-xl border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-300">
