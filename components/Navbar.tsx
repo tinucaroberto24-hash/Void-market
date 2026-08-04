@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 type CartItem = {
   id: string;
@@ -14,6 +15,8 @@ type CartItem = {
 
 export default function Navbar() {
   const [cartCount, setCartCount] = useState(0);
+  const [adminHref, setAdminHref] = useState("/admin/login");
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   useEffect(() => {
     function updateCartCount() {
@@ -49,6 +52,45 @@ export default function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function checkAdminSession() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user?.email === "voidmarket.ro@gmail.com") {
+        setAdminHref("/admin");
+      } else {
+        setAdminHref("/admin/login");
+      }
+
+      setCheckingAdmin(false);
+    }
+
+    checkAdminSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (
+        session?.user?.email ===
+        "voidmarket.ro@gmail.com"
+      ) {
+        setAdminHref("/admin");
+      } else {
+        setAdminHref("/admin/login");
+      }
+
+      setCheckingAdmin(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-zinc-800 bg-black/90 px-6 py-5 text-white backdrop-blur md:px-10">
       <Link
@@ -59,7 +101,10 @@ export default function Navbar() {
       </Link>
 
       <div className="flex items-center gap-4 text-sm md:gap-8 md:text-lg">
-        <Link href="/" className="transition hover:text-zinc-400">
+        <Link
+          href="/"
+          className="transition hover:text-zinc-400"
+        >
           Acasă
         </Link>
 
@@ -82,6 +127,13 @@ export default function Navbar() {
           className="transition hover:text-zinc-400"
         >
           Contact
+        </Link>
+
+        <Link
+          href={adminHref}
+          className="rounded-xl border border-zinc-800 px-3 py-2 text-xs text-zinc-500 transition hover:border-zinc-600 hover:text-white md:text-sm"
+        >
+          {checkingAdmin ? "Admin..." : "Admin"}
         </Link>
 
         <Link
