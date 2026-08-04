@@ -13,7 +13,6 @@ type CartItem = {
   quantity: number;
 };
 
-type DeliveryMethod = "easybox" | "fan";
 type PaymentMethod = "cash" | "card";
 
 type CheckoutForm = {
@@ -26,9 +25,7 @@ type CheckoutForm = {
   otherCity: string;
   address: string;
   postalCode: string;
-  easyboxLocation: string;
   notes: string;
-  deliveryMethod: DeliveryMethod;
   paymentMethod: PaymentMethod;
 };
 
@@ -42,9 +39,7 @@ const initialForm: CheckoutForm = {
   otherCity: "",
   address: "",
   postalCode: "",
-  easyboxLocation: "",
   notes: "",
-  deliveryMethod: "fan",
   paymentMethod: "cash",
 };
 
@@ -383,10 +378,35 @@ export default function CheckoutPage() {
       return "Completează numele.";
     }
 
-    const phoneDigits = form.phone.replace(/\D/g, "");
+    const normalizedPhone = form.phone.trim();
+    const phoneDigits = normalizedPhone.replace(/\D/g, "");
 
-    if (phoneDigits.length < 7 || phoneDigits.length > 15) {
-      return "Introdu un număr de telefon valid.";
+    const isInternationalPhone = /^\+[1-9]\d{7,14}$/.test(
+      normalizedPhone
+    );
+
+    const isNationalPhone = /^0\d{8,14}$/.test(
+      normalizedPhone
+    );
+
+    const hasRepeatedDigits = /^(\d)\1+$/.test(phoneDigits);
+
+    if (
+      (!isInternationalPhone && !isNationalPhone) ||
+      hasRepeatedDigits
+    ) {
+      return "Introdu un număr de telefon valid, de exemplu 0712345678 sau +40712345678.";
+    }
+
+    const emailValue = form.email.trim();
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+    if (!emailValue) {
+      return "Completează adresa de email.";
+    }
+
+    if (!emailPattern.test(emailValue)) {
+      return "Introdu o adresă de email validă.";
     }
 
     if (!form.county) {
@@ -404,17 +424,7 @@ export default function CheckoutPage() {
       return "Scrie numele localității.";
     }
 
-    if (
-      form.deliveryMethod === "easybox" &&
-      !form.easyboxLocation.trim()
-    ) {
-      return "Completează Easybox-ul ales.";
-    }
-
-    if (
-      form.deliveryMethod === "fan" &&
-      !form.address.trim()
-    ) {
+    if (!form.address.trim()) {
       return "Completează adresa de livrare.";
     }
 
@@ -426,10 +436,6 @@ export default function CheckoutPage() {
   }
 
   function getDeliveryAddress() {
-    if (form.deliveryMethod === "easybox") {
-      return form.easyboxLocation.trim();
-    }
-
     return `${form.address.trim()}${
       form.postalCode.trim()
         ? `, Cod poștal: ${form.postalCode.trim()}`
@@ -461,11 +467,7 @@ Telefon: ${form.phone}
 Email: ${form.email || "Necompletat"}
 
 LIVRARE
-Metodă: ${
-      form.deliveryMethod === "easybox"
-        ? "Easybox"
-        : "FAN Courier"
-    }
+Metodă: FAN Courier
 Județ: ${form.county}
 Localitate: ${selectedCity}
 Adresă / Locker: ${getDeliveryAddress()}
@@ -501,10 +503,7 @@ ${form.notes || "Fără observații"}
           email:
             form.email.trim() || "voidmarket.ro@gmail.com",
           phone: form.phone,
-          delivery_method:
-            form.deliveryMethod === "easybox"
-              ? "Easybox"
-              : "FAN Courier",
+          delivery_method: "FAN Courier",
           county: form.county,
           city: selectedCity,
           delivery_address: getDeliveryAddress(),
@@ -564,39 +563,29 @@ ${form.notes || "Fără observații"}
           phone: form.phone,
           county: form.county,
           city: selectedCity,
-          deliveryMethod: form.deliveryMethod,
+          deliveryMethod: "fan",
           deliveryAddress: getDeliveryAddress(),
         }),
       });
 
-      const responseText = await response.text();
-
-      let result: { url?: string; error?: string } = {};
-
-      try {
-        result = JSON.parse(responseText);
-      } catch {
-        throw new Error(
-          `Serverul a răspuns cu un format invalid (${response.status}).`
-        );
-      }
+      const result = await response.json();
 
       if (!response.ok || !result.url) {
         throw new Error(
-          result.error || `Nu am putut porni plata (${response.status}).`
+          result.error || "Nu am putut porni plata."
         );
       }
 
       window.location.href = result.url;
     } catch (paymentError: unknown) {
-      console.error("Eroare plată Stripe:", paymentError);
+      console.error(paymentError);
 
-      const message =
+      setError(
         paymentError instanceof Error
           ? paymentError.message
-          : "Nu am putut deschide plata cu cardul.";
+          : "Nu am putut deschide plata cu cardul."
+      );
 
-      setError(message);
       setSending(false);
     }
   }
@@ -737,6 +726,8 @@ ${form.notes || "Fără observații"}
                         event.target.value
                       )
                     }
+                    autoComplete="given-name"
+                    required
                     className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                   />
                 </label>
@@ -755,6 +746,8 @@ ${form.notes || "Fără observații"}
                         event.target.value
                       )
                     }
+                    autoComplete="family-name"
+                    required
                     className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                   />
                 </label>
@@ -775,14 +768,17 @@ ${form.notes || "Fără observații"}
 
                       updateField("phone", value);
                     }}
-                    placeholder="+40 712345678"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="0712345678 sau +40712345678"
+                    required
                     className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                   />
                 </label>
 
                 <label>
                   <span className="mb-2 block text-sm text-zinc-400">
-                    Email
+                    Email *
                   </span>
 
                   <input
@@ -794,6 +790,9 @@ ${form.notes || "Fără observații"}
                         event.target.value
                       )
                     }
+                    autoComplete="email"
+                    placeholder="email@exemplu.ro"
+                    required
                     className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                   />
                 </label>
@@ -805,53 +804,11 @@ ${form.notes || "Fără observații"}
                 Metoda de livrare
               </h2>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <label
-                  className={`cursor-pointer rounded-2xl border p-5 ${
-                    form.deliveryMethod === "easybox"
-                      ? "border-white bg-zinc-900"
-                      : "border-zinc-700"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="delivery"
-                    checked={
-                      form.deliveryMethod === "easybox"
-                    }
-                    onChange={() =>
-                      updateField(
-                        "deliveryMethod",
-                        "easybox"
-                      )
-                    }
-                  />
-
-                  <span className="ml-3 font-semibold">
-                    Easybox
-                  </span>
-                </label>
-
-                <label
-                  className={`cursor-pointer rounded-2xl border p-5 ${
-                    form.deliveryMethod === "fan"
-                      ? "border-white bg-zinc-900"
-                      : "border-zinc-700"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="delivery"
-                    checked={form.deliveryMethod === "fan"}
-                    onChange={() =>
-                      updateField("deliveryMethod", "fan")
-                    }
-                  />
-
-                  <span className="ml-3 font-semibold">
-                    FAN Courier
-                  </span>
-                </label>
+              <div className="mt-6 rounded-2xl border border-white bg-zinc-900 p-5">
+                <p className="font-semibold">FAN Courier</p>
+                <p className="mt-2 text-sm text-zinc-500">
+                  Livrare la adresa completată mai jos.
+                </p>
               </div>
             </section>
 
@@ -936,67 +893,49 @@ ${form.notes || "Fără observații"}
                   </label>
                 )}
 
-                {form.deliveryMethod === "easybox" ? (
-                  <label className="md:col-span-2">
-                    <span className="mb-2 block text-sm text-zinc-400">
-                      Easybox ales *
-                    </span>
+                <label className="md:col-span-2">
+                  <span className="mb-2 block text-sm text-zinc-400">
+                    Adresă completă *
+                  </span>
 
-                    <input
-                      type="text"
-                      value={form.easyboxLocation}
-                      onChange={(event) =>
-                        updateField(
-                          "easyboxLocation",
-                          event.target.value
+                  <input
+                    type="text"
+                    value={form.address}
+                    onChange={(event) =>
+                      updateField(
+                        "address",
+                        event.target.value
+                      )
+                    }
+                    placeholder="Stradă, număr, bloc, scară, apartament"
+                    autoComplete="street-address"
+                    required
+                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
+                  />
+                </label>
+
+                <label>
+                  <span className="mb-2 block text-sm text-zinc-400">
+                    Cod poștal
+                  </span>
+
+                  <input
+                    type="text"
+                    value={form.postalCode}
+                    onChange={(event) =>
+                      updateField(
+                        "postalCode",
+                        event.target.value.replace(
+                          /\D/g,
+                          ""
                         )
-                      }
-                      placeholder="Exemplu: Easybox Kaufland Bacău"
-                      className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
-                    />
-                  </label>
-                ) : (
-                  <>
-                    <label className="md:col-span-2">
-                      <span className="mb-2 block text-sm text-zinc-400">
-                        Adresă completă *
-                      </span>
-
-                      <input
-                        type="text"
-                        value={form.address}
-                        onChange={(event) =>
-                          updateField(
-                            "address",
-                            event.target.value
-                          )
-                        }
-                        className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
-                      />
-                    </label>
-
-                    <label>
-                      <span className="mb-2 block text-sm text-zinc-400">
-                        Cod poștal
-                      </span>
-
-                      <input
-                        type="text"
-                        value={form.postalCode}
-                        onChange={(event) =>
-                          updateField(
-                            "postalCode",
-                            event.target.value.replace(
-                              /\D/g,
-                              ""
-                            )
-                          )
-                        }
-                        className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
-                      />
-                    </label>
-                  </>
-                )}
+                      )
+                    }
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                    className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
+                  />
+                </label>
               </div>
             </section>
 
