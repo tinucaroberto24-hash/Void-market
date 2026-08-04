@@ -10,7 +10,7 @@ type CartItemInput = {
 type CheckoutBody = {
   firstName: string;
   lastName: string;
-  email?: string;
+  email: string;
   phone: string;
   county: string;
   city: string;
@@ -24,7 +24,10 @@ type DatabaseProduct = {
   name: string;
   price: number;
   stock: number | null;
+  image: string | null;
 };
+
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
@@ -43,7 +46,9 @@ export async function POST(request: Request) {
           error:
             "STRIPE_SECRET_KEY lipsește din Environment Variables.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
@@ -53,7 +58,9 @@ export async function POST(request: Request) {
           error:
             "Cheile Supabase pentru server lipsesc.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
@@ -71,7 +78,8 @@ export async function POST(request: Request) {
       }
     );
 
-    const body: CheckoutBody = await request.json();
+    const body: CheckoutBody =
+      await request.json();
 
     const {
       firstName,
@@ -88,6 +96,7 @@ export async function POST(request: Request) {
     if (
       !firstName?.trim() ||
       !lastName?.trim() ||
+      !email?.trim() ||
       !phone?.trim() ||
       !county?.trim() ||
       !city?.trim() ||
@@ -99,56 +108,74 @@ export async function POST(request: Request) {
           error:
             "Completează toate câmpurile obligatorii.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
+    if (
+      !Array.isArray(items) ||
+      items.length === 0
+    ) {
       return NextResponse.json(
         {
           error: "Coșul este gol.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const normalizedItems = items.map((item) => ({
-      id: String(item.id),
-      quantity: Number(item.quantity),
-    }));
-
-    const invalidItem = normalizedItems.find(
-      (item) =>
-        !item.id ||
-        !Number.isInteger(item.quantity) ||
-        item.quantity <= 0
+    const normalizedItems = items.map(
+      (item) => ({
+        id: String(item.id),
+        quantity: Number(item.quantity),
+      })
     );
+
+    const invalidItem =
+      normalizedItems.find(
+        (item) =>
+          !item.id ||
+          !Number.isInteger(item.quantity) ||
+          item.quantity <= 0
+      );
 
     if (invalidItem) {
       return NextResponse.json(
         {
           error:
-            "Coșul conține un produs sau o cantitate invalidă.",
+            "Coșul conține produse sau cantități invalide.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
     const productIds = [
       ...new Set(
-        normalizedItems.map((item) => item.id)
+        normalizedItems.map(
+          (item) => item.id
+        )
       ),
     ];
 
-    const { data, error: productsError } =
-      await supabaseAdmin
-        .from("products")
-        .select("id, name, price, stock")
-        .in("id", productIds);
+    const {
+      data,
+      error: productsError,
+    } = await supabaseAdmin
+      .from("products")
+      .select(
+        "id, name, price, stock, image"
+      )
+      .in("id", productIds);
 
     if (productsError) {
       console.error(
-        "Supabase products error:",
+        "Eroare Supabase la produse:",
         productsError
       );
 
@@ -157,20 +184,28 @@ export async function POST(request: Request) {
           error:
             "Produsele nu au putut fi verificate.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
     const products =
-      (data as DatabaseProduct[] | null) ?? [];
+      (data as DatabaseProduct[] | null) ??
+      [];
 
-    if (products.length !== productIds.length) {
+    if (
+      products.length !==
+      productIds.length
+    ) {
       return NextResponse.json(
         {
           error:
             "Unul dintre produsele din coș nu mai există.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
@@ -182,7 +217,8 @@ export async function POST(request: Request) {
     );
 
     for (const item of normalizedItems) {
-      const product = productsById.get(item.id);
+      const product =
+        productsById.get(item.id);
 
       if (!product) {
         return NextResponse.json(
@@ -190,13 +226,19 @@ export async function POST(request: Request) {
             error:
               "Un produs din coș nu mai există.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
-      const availableStock = product.stock ?? 0;
+      const availableStock =
+        product.stock ?? 0;
 
-      if (availableStock < item.quantity) {
+      if (
+        availableStock <
+        item.quantity
+      ) {
         return NextResponse.json(
           {
             error:
@@ -204,16 +246,17 @@ export async function POST(request: Request) {
                 ? `${product.name} este stoc epuizat.`
                 : `Mai sunt doar ${availableStock} bucăți din ${product.name}.`,
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
     }
 
     const stripeLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
       normalizedItems.map((item) => {
-        const product = productsById.get(
-          item.id
-        )!;
+        const product =
+          productsById.get(item.id)!;
 
         return {
           quantity: item.quantity,
@@ -228,8 +271,13 @@ export async function POST(request: Request) {
             product_data: {
               name: product.name,
 
+              images: product.image
+                ? [product.image]
+                : undefined,
+
               metadata: {
-                product_id: product.id,
+                product_id:
+                  product.id,
               },
             },
           },
@@ -248,19 +296,19 @@ export async function POST(request: Request) {
           name: "Transport",
 
           description:
-            deliveryMethod === "easybox"
+            deliveryMethod ===
+            "easybox"
               ? "Livrare Easybox"
               : "Livrare FAN Courier",
         },
       },
     });
 
-    const checkoutItems = normalizedItems.map(
-      (item) => ({
+    const checkoutItems =
+      normalizedItems.map((item) => ({
         id: item.id,
         quantity: item.quantity,
-      })
-    );
+      }));
 
     const origin =
       request.headers.get("origin") ||
@@ -271,16 +319,19 @@ export async function POST(request: Request) {
       await stripe.checkout.sessions.create({
         mode: "payment",
 
-        payment_method_types: ["card"],
+        payment_method_types: [
+          "card",
+        ],
 
         customer_email:
-          email?.trim() || undefined,
+          email.trim(),
 
         phone_number_collection: {
           enabled: true,
         },
 
-        line_items: stripeLineItems,
+        line_items:
+          stripeLineItems,
 
         metadata: {
           customer_name:
@@ -298,16 +349,30 @@ export async function POST(request: Request) {
           delivery_address:
             deliveryAddress.trim(),
 
-          cart_items: JSON.stringify(
-            checkoutItems
-          ),
+          cart_items:
+            JSON.stringify(
+              checkoutItems
+            ),
         },
 
         success_url:
-          `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+          `${origin}/succes?session_id={CHECKOUT_SESSION_ID}`,
 
-        cancel_url: `${origin}/cancel`,
+        cancel_url:
+          `${origin}/cancel`,
       });
+
+    if (!session.url) {
+      return NextResponse.json(
+        {
+          error:
+            "Stripe nu a returnat URL-ul de plată.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
 
     return NextResponse.json({
       url: session.url,
@@ -325,7 +390,9 @@ export async function POST(request: Request) {
             ? error.message
             : "Checkout-ul nu a putut fi creat.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
