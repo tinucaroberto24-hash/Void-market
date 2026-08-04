@@ -569,22 +569,34 @@ ${form.notes || "Fără observații"}
         }),
       });
 
-      const result = await response.json();
+      const responseText = await response.text();
+
+      let result: { url?: string; error?: string } = {};
+
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          `Serverul a răspuns cu un format invalid (${response.status}).`
+        );
+      }
 
       if (!response.ok || !result.url) {
         throw new Error(
-          result.error || "Nu am putut porni plata."
+          result.error || `Nu am putut porni plata (${response.status}).`
         );
       }
 
       window.location.href = result.url;
-    } catch (paymentError) {
-      console.error(paymentError);
+    } catch (paymentError: unknown) {
+      console.error("Eroare plată Stripe:", paymentError);
 
-      setError(
-        "Nu am putut deschide plata cu cardul. Verifică cheile Stripe."
-      );
+      const message =
+        paymentError instanceof Error
+          ? paymentError.message
+          : "Nu am putut deschide plata cu cardul.";
 
+      setError(message);
       setSending(false);
     }
   }
