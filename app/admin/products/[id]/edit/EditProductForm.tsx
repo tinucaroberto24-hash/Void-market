@@ -18,7 +18,7 @@ type ProductData = {
   condition: string;
   description: string | null;
   image: string | null;
-  images: string[] | null;
+  images: string[] | string | null;
   stock: number | null;
 };
 
@@ -40,17 +40,40 @@ type ProductForm = {
 const MAX_IMAGES = 5;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
+function normalizeImages(
+  images: string[] | string | null,
+  mainImage: string | null
+): string[] {
+  if (Array.isArray(images)) {
+    return images.filter(
+      (item): item is string =>
+        typeof item === "string" && item.trim().length > 0
+    );
+  }
+
+  if (typeof images === "string" && images.trim()) {
+    try {
+      const parsed = JSON.parse(images);
+
+      if (Array.isArray(parsed)) {
+        return parsed.filter(
+          (item): item is string =>
+            typeof item === "string" &&
+            item.trim().length > 0
+        );
+      }
+    } catch {
+      return [images];
+    }
+  }
+
+  return mainImage ? [mainImage] : [];
+}
+
 export default function EditProductForm({
   product,
 }: EditProductFormProps) {
   const router = useRouter();
-
-  const initialExistingImages =
-    product.images && product.images.length > 0
-      ? product.images
-      : product.image
-      ? [product.image]
-      : [];
 
   const [form, setForm] = useState<ProductForm>({
     name: product.name,
@@ -64,7 +87,9 @@ export default function EditProductForm({
   });
 
   const [existingImages, setExistingImages] =
-    useState<string[]>(initialExistingImages);
+    useState<string[]>(() =>
+      normalizeImages(product.images, product.image)
+    );
 
   const [imageFiles, setImageFiles] =
     useState<File[]>([]);
@@ -107,16 +132,20 @@ export default function EditProductForm({
       return;
     }
 
+    const manualImageCount =
+      form.image.trim().length > 0 ? 1 : 0;
+
     const totalAfterSelection =
       existingImages.length +
       imageFiles.length +
       selectedFiles.length +
-      (form.image.trim() ? 1 : 0);
+      manualImageCount;
 
     if (totalAfterSelection > MAX_IMAGES) {
       setError(
         `Poți avea maximum ${MAX_IMAGES} poze în total.`
       );
+
       event.target.value = "";
       return;
     }
@@ -127,6 +156,7 @@ export default function EditProductForm({
 
     if (invalidType) {
       setError("Poți încărca doar fișiere imagine.");
+
       event.target.value = "";
       return;
     }
@@ -139,9 +169,14 @@ export default function EditProductForm({
       setError(
         "Fiecare imagine poate avea maximum 5 MB."
       );
+
       event.target.value = "";
       return;
     }
+
+    const newPreviews = selectedFiles.map((file) =>
+      URL.createObjectURL(file)
+    );
 
     setImageFiles((current) => [
       ...current,
@@ -150,9 +185,7 @@ export default function EditProductForm({
 
     setImagePreviews((current) => [
       ...current,
-      ...selectedFiles.map((file) =>
-        URL.createObjectURL(file)
-      ),
+      ...newPreviews,
     ]);
 
     event.target.value = "";
@@ -167,7 +200,11 @@ export default function EditProductForm({
   }
 
   function removeSelectedImage(index: number) {
-    URL.revokeObjectURL(imagePreviews[index]);
+    const preview = imagePreviews[index];
+
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
 
     setImageFiles((current) =>
       current.filter(
@@ -300,7 +337,13 @@ export default function EditProductForm({
         ...(manualImageUrl
           ? [manualImageUrl]
           : []),
-      ].slice(0, MAX_IMAGES);
+      ]
+        .filter(
+          (url, index, array) =>
+            url.trim().length > 0 &&
+            array.indexOf(url) === index
+        )
+        .slice(0, MAX_IMAGES);
 
       const mainImage =
         allImageUrls.length > 0
@@ -446,18 +489,23 @@ export default function EditProductForm({
             className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
           >
             <option value="">Alege starea</option>
+
             <option value="Nou cu etichetă">
               Nou cu etichetă
             </option>
+
             <option value="Nou fără etichetă">
               Nou fără etichetă
             </option>
+
             <option value="Stare foarte bună">
               Stare foarte bună
             </option>
+
             <option value="Stare bună">
               Stare bună
             </option>
+
             <option value="Stare acceptabilă">
               Stare acceptabilă
             </option>
@@ -489,34 +537,36 @@ export default function EditProductForm({
             </p>
 
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {existingImages.map((imageUrl, index) => (
-                <div
-                  key={`${imageUrl}-${index}`}
-                  className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-black"
-                >
-                  <img
-                    src={imageUrl}
-                    alt={`Poză existentă ${index + 1}`}
-                    className="h-52 w-full object-contain"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      removeExistingImage(index)
-                    }
-                    className="absolute right-2 top-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white"
+              {existingImages.map(
+                (imageUrl, index) => (
+                  <div
+                    key={`${imageUrl}-${index}`}
+                    className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-black"
                   >
-                    Elimină
-                  </button>
+                    <img
+                      src={imageUrl}
+                      alt={`Poză existentă ${index + 1}`}
+                      className="h-52 w-full object-contain"
+                    />
 
-                  {index === 0 && (
-                    <span className="absolute bottom-2 left-2 rounded-lg bg-white px-3 py-1 text-xs font-bold text-black">
-                      Poză principală
-                    </span>
-                  )}
-                </div>
-              ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        removeExistingImage(index)
+                      }
+                      className="absolute right-2 top-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white"
+                    >
+                      Elimină
+                    </button>
+
+                    {index === 0 && (
+                      <span className="absolute bottom-2 left-2 rounded-lg bg-white px-3 py-1 text-xs font-bold text-black">
+                        Poză principală
+                      </span>
+                    )}
+                  </div>
+                )
+              )}
             </div>
           </div>
         )}
@@ -547,37 +597,41 @@ export default function EditProductForm({
             </p>
 
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {imagePreviews.map((preview, index) => (
-                <div
-                  key={preview}
-                  className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-black"
-                >
-                  <img
-                    src={preview}
-                    alt={`Previzualizare ${index + 1}`}
-                    className="h-52 w-full object-contain"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      removeSelectedImage(index)
-                    }
-                    className="absolute right-2 top-2 rounded-lg bg-black/80 px-3 py-2 text-xs font-bold text-white"
+              {imagePreviews.map(
+                (preview, index) => (
+                  <div
+                    key={preview}
+                    className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-black"
                   >
-                    Șterge
-                  </button>
-                </div>
-              ))}
+                    <img
+                      src={preview}
+                      alt={`Previzualizare ${index + 1}`}
+                      className="h-52 w-full object-contain"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        removeSelectedImage(index)
+                      }
+                      className="absolute right-2 top-2 rounded-lg bg-black/80 px-3 py-2 text-xs font-bold text-white"
+                    >
+                      Șterge
+                    </button>
+                  </div>
+                )
+              )}
             </div>
           </div>
         )}
 
         <div className="md:col-span-2 flex items-center gap-4">
           <div className="h-px flex-1 bg-zinc-800" />
+
           <span className="text-xs uppercase tracking-widest text-zinc-600">
             sau
           </span>
+
           <div className="h-px flex-1 bg-zinc-800" />
         </div>
 
@@ -592,7 +646,10 @@ export default function EditProductForm({
             onChange={(event) =>
               updateField("image", event.target.value)
             }
-            disabled={totalImages >= MAX_IMAGES && !form.image}
+            disabled={
+              totalImages >= MAX_IMAGES &&
+              !form.image
+            }
             placeholder="https://..."
             className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white disabled:opacity-50"
           />
