@@ -1,18 +1,23 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-
-if (!stripeSecretKey) {
-  throw new Error(
-    "Lipsește STRIPE_SECRET_KEY din fișierul .env.local."
-  );
-}
-
-const stripe = new Stripe(stripeSecretKey);
-
 export async function POST(request: Request) {
   try {
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+    if (!stripeSecretKey) {
+      return NextResponse.json(
+        {
+          error: "STRIPE_SECRET_KEY lipsește din Environment Variables.",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    const stripe = new Stripe(stripeSecretKey);
+
     const body = await request.json();
 
     const {
@@ -37,7 +42,7 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         {
-          error: "Lipsesc date obligatorii pentru comandă.",
+          error: "Completează toate câmpurile obligatorii.",
         },
         {
           status: 400,
@@ -72,13 +77,7 @@ export async function POST(request: Request) {
 
             product_data: {
               name: "Louis Vuitton LV Sweater",
-
-              description:
-                "Mărime S • Stare foarte bună • Fără defecte",
-
-              images: [
-                `${origin}/lv/front.jpeg`,
-              ],
+              description: "Premium Streetwear",
             },
           },
         },
@@ -95,8 +94,8 @@ export async function POST(request: Request) {
               name: "Transport",
               description:
                 deliveryMethod === "easybox"
-                  ? "Livrare la Easybox"
-                  : "Livrare prin FAN Courier",
+                  ? "Livrare Easybox"
+                  : "Livrare FAN Courier",
             },
           },
         },
@@ -116,27 +115,15 @@ export async function POST(request: Request) {
       cancel_url: `${origin}/cancel`,
     });
 
-    if (!session.url) {
-      return NextResponse.json(
-        {
-          error: "Stripe nu a returnat URL-ul de plată.",
-        },
-        {
-          status: 500,
-        }
-      );
-    }
-
     return NextResponse.json({
       url: session.url,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Stripe checkout error:", error);
 
     return NextResponse.json(
       {
-        error:
-          "Nu am putut porni plata cu cardul.",
+        error: error?.message || JSON.stringify(error),
       },
       {
         status: 500,
