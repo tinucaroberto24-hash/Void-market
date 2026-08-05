@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import OrderStatusSelect from "./OrderStatusSelect";
+import CopyButton from "@/components/CopyButton";
 
 type OrderItem = {
   id: string;
@@ -9,6 +10,11 @@ type OrderItem = {
   quantity: number;
   unit_price: number;
   total: number;
+};
+
+type ProductImage = {
+  id: string;
+  image: string | null;
 };
 
 type Order = {
@@ -116,6 +122,40 @@ export default async function AdminOrderPage({
 
   const order = data as Order;
 
+  const productIds = [
+    ...new Set(
+      order.items.map((item) => item.id)
+    ),
+  ];
+
+  const {
+    data: productImagesData,
+    error: productImagesError,
+  } = productIds.length
+    ? await supabase
+        .from("products")
+        .select("id, image")
+        .in("id", productIds)
+    : { data: [], error: null };
+
+  if (productImagesError) {
+    console.error(
+      "Eroare la încărcarea imaginilor produselor:",
+      productImagesError
+    );
+  }
+
+  const productImages = new Map(
+    ((productImagesData as ProductImage[] | null) ?? []).map(
+      (product) => [product.id, product.image]
+    )
+  );
+
+  const cashAmount =
+    order.payment_method === "cash"
+      ? String(order.total)
+      : "0";
+
   return (
     <main className="min-h-screen bg-black px-6 py-10 text-white">
       <div className="mx-auto max-w-6xl">
@@ -193,49 +233,68 @@ export default async function AdminOrderPage({
               </h2>
 
               <div className="mt-6 space-y-4">
-                {order.items.map((item, index) => (
-                  <article
-                    key={`${item.id}-${index}`}
-                    className="rounded-2xl border border-zinc-800 bg-black p-5"
-                  >
-                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <h3 className="text-xl font-bold">
-                          {item.name}
-                        </h3>
+                {order.items.map((item, index) => {
+                  const productImage =
+                    productImages.get(item.id);
 
-                        <p className="mt-2 text-sm text-zinc-500">
-                          ID produs: {item.id}
-                        </p>
+                  return (
+                    <article
+                      key={`${item.id}-${index}`}
+                      className="rounded-2xl border border-zinc-800 bg-black p-5"
+                    >
+                      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                        <div className="flex h-28 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 sm:w-28">
+                          {productImage ? (
+                            <img
+                              src={productImage}
+                              alt={item.name}
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            <div className="px-3 text-center text-xs text-zinc-600">
+                              Fără poză
+                            </div>
+                          )}
+                        </div>
 
-                        <p className="mt-3 text-zinc-400">
-                          Cantitate:{" "}
-                          <strong className="text-white">
-                            {item.quantity}
-                          </strong>
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-xl font-bold">
+                            {item.name}
+                          </h3>
 
-                        <p className="mt-1 text-zinc-400">
-                          Preț unitar:{" "}
-                          <strong className="text-white">
-                            {item.unit_price} Lei
-                          </strong>
-                        </p>
+                          <p className="mt-2 break-all text-sm text-zinc-500">
+                            ID produs: {item.id}
+                          </p>
+
+                          <p className="mt-3 text-zinc-400">
+                            {item.unit_price} Lei × {item.quantity}
+                          </p>
+
+                          <p className="mt-1 text-sm text-zinc-500">
+                            Cantitate: {item.quantity}
+                          </p>
+                        </div>
+
+                        <div className="sm:text-right">
+                          <p className="text-sm text-zinc-500">
+                            Total produs
+                          </p>
+
+                          <p className="mt-1 text-2xl font-black">
+                            {item.total} Lei
+                          </p>
+                        </div>
                       </div>
 
-                      <p className="text-2xl font-black">
-                        {item.total} Lei
-                      </p>
-                    </div>
-
-                    <Link
-                      href={`/products/${item.id}`}
-                      className="mt-5 inline-block text-sm font-semibold text-zinc-400 underline transition hover:text-white"
-                    >
-                      Vezi produsul
-                    </Link>
-                  </article>
-                ))}
+                      <Link
+                        href={`/products/${item.id}`}
+                        className="mt-5 inline-block text-sm font-semibold text-zinc-400 underline transition hover:text-white"
+                      >
+                        Vezi produsul
+                      </Link>
+                    </article>
+                  );
+                })}
               </div>
             </section>
 
@@ -247,39 +306,39 @@ export default async function AdminOrderPage({
 
                 <div className="mt-6 space-y-4 text-sm">
                   <div>
-                    <p className="text-zinc-500">
-                      Nume
-                    </p>
-
-                    <p className="mt-1 font-semibold">
-                      {order.customer_name}
-                    </p>
+                    <p className="text-zinc-500">Nume</p>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <p className="font-semibold">
+                        {order.customer_name}
+                      </p>
+                      <CopyButton value={order.customer_name} />
+                    </div>
                   </div>
 
                   <div>
-                    <p className="text-zinc-500">
-                      Email
-                    </p>
-
-                    <a
-                      href={`mailto:${order.email}`}
-                      className="mt-1 block break-all font-semibold underline"
-                    >
-                      {order.email}
-                    </a>
+                    <p className="text-zinc-500">Email</p>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <a
+                        href={`mailto:${order.email}`}
+                        className="min-w-0 break-all font-semibold underline"
+                      >
+                        {order.email}
+                      </a>
+                      <CopyButton value={order.email} />
+                    </div>
                   </div>
 
                   <div>
-                    <p className="text-zinc-500">
-                      Telefon
-                    </p>
-
-                    <a
-                      href={`tel:${order.phone}`}
-                      className="mt-1 block font-semibold underline"
-                    >
-                      {order.phone}
-                    </a>
+                    <p className="text-zinc-500">Telefon</p>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <a
+                        href={`tel:${order.phone}`}
+                        className="font-semibold underline"
+                      >
+                        {order.phone}
+                      </a>
+                      <CopyButton value={order.phone} />
+                    </div>
                   </div>
                 </div>
               </article>
@@ -291,33 +350,29 @@ export default async function AdminOrderPage({
 
                 <div className="mt-6 space-y-4 text-sm">
                   <div>
-                    <p className="text-zinc-500">
-                      Județ
-                    </p>
-
-                    <p className="mt-1 font-semibold">
-                      {order.county}
-                    </p>
+                    <p className="text-zinc-500">Județ</p>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <p className="font-semibold">{order.county}</p>
+                      <CopyButton value={order.county} />
+                    </div>
                   </div>
 
                   <div>
-                    <p className="text-zinc-500">
-                      Localitate
-                    </p>
-
-                    <p className="mt-1 font-semibold">
-                      {order.city}
-                    </p>
+                    <p className="text-zinc-500">Localitate</p>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <p className="font-semibold">{order.city}</p>
+                      <CopyButton value={order.city} />
+                    </div>
                   </div>
 
                   <div>
-                    <p className="text-zinc-500">
-                      Adresă completă
-                    </p>
-
-                    <p className="mt-1 whitespace-pre-line font-semibold leading-6">
-                      {order.delivery_address}
-                    </p>
+                    <p className="text-zinc-500">Adresă completă</p>
+                    <div className="mt-1 flex items-start justify-between gap-3">
+                      <p className="whitespace-pre-line font-semibold leading-6">
+                        {order.delivery_address}
+                      </p>
+                      <CopyButton value={order.delivery_address} />
+                    </div>
                   </div>
                 </div>
               </article>
@@ -335,6 +390,42 @@ export default async function AdminOrderPage({
                   orderId={order.id}
                   currentStatus={order.status}
                 />
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+              <h2 className="text-xl font-bold">
+                Date AWB
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-zinc-500">
+                Copiază fiecare valoare în câmpul corespunzător din platforma curierului.
+              </p>
+
+              <div className="mt-6 space-y-4 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-zinc-500">Nume destinatar</p>
+                    <p className="mt-1 font-semibold">{order.customer_name}</p>
+                  </div>
+                  <CopyButton value={order.customer_name} />
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-zinc-500">Telefon</p>
+                    <p className="mt-1 font-semibold">{order.phone}</p>
+                  </div>
+                  <CopyButton value={order.phone} />
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-zinc-500">Ramburs</p>
+                    <p className="mt-1 font-semibold">{cashAmount} Lei</p>
+                  </div>
+                  <CopyButton value={cashAmount} />
+                </div>
               </div>
             </section>
 

@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import {
+  notFound,
+  redirect,
+} from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import EditProductForm from "./EditProductForm";
 
@@ -14,7 +17,8 @@ export default async function EditProductPage({
 }: EditProductPageProps) {
   const { id } = await params;
 
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
@@ -24,14 +28,31 @@ export default async function EditProductPage({
     redirect("/admin/login");
   }
 
-  if (user.email !== "voidmarket.ro@gmail.com") {
+  if (
+    user.email !==
+    "voidmarket.ro@gmail.com"
+  ) {
     redirect("/");
   }
 
-  const { data: product, error } = await supabase
+  const {
+    data: product,
+    error,
+  } = await supabase
     .from("products")
     .select(
-      "id, name, brand, price, size, condition, description, image, images, stock"
+      `
+        id,
+        name,
+        brand,
+        price,
+        size,
+        condition,
+        description,
+        image,
+        images,
+        stock
+      `
     )
     .eq("id", id)
     .single();
@@ -80,7 +101,9 @@ export default async function EditProductPage({
           </div>
         </div>
 
-        <EditProductForm product={product} />
+        <EditProductForm
+          product={product}
+        />
       </section>
     </main>
   );
