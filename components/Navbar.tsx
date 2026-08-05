@@ -256,21 +256,38 @@ export default function Navbar() {
             VOID MARKET
           </Link>
 
-          <button
-            type="button"
-            onClick={() =>
-              setMobileOpen(
-                (current) => !current
-              )
-            }
-            className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-semibold transition hover:border-white/40 hover:bg-white/[0.08] lg:hidden"
-            aria-label="Deschide meniul"
-            aria-expanded={mobileOpen}
-          >
-            {mobileOpen
-              ? "Închide"
-              : "Meniu"}
-          </button>
+          <div className="flex items-center gap-2 lg:hidden">
+            <Link
+              href="/cos"
+              onClick={closeMobileMenu}
+              className="relative flex h-10 min-w-10 items-center justify-center rounded-xl bg-white px-3 text-sm font-black text-black transition hover:bg-zinc-200"
+              aria-label={`Deschide coșul${cartCount > 0 ? `, ${cartCount} produse` : ""}`}
+            >
+              <span aria-hidden="true">🛒</span>
+
+              {cartCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-black bg-white px-1 text-xs font-black text-black">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+
+            <button
+              type="button"
+              onClick={() =>
+                setMobileOpen(
+                  (current) => !current
+                )
+              }
+              className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-semibold transition hover:border-white/40 hover:bg-white/[0.08]"
+              aria-label="Deschide meniul"
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen
+                ? "Închide"
+                : "Meniu"}
+            </button>
+          </div>
 
           <div className="hidden items-center gap-1 lg:flex">
             <Link
@@ -419,19 +436,6 @@ export default function Navbar() {
                   : "Admin"}
               </Link>
 
-              <Link
-                href="/cos"
-                onClick={closeMobileMenu}
-                className="flex items-center justify-between rounded-xl bg-white px-4 py-3 font-bold text-black transition hover:bg-zinc-200"
-              >
-                <span>Coș</span>
-
-                {cartCount > 0 && (
-                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-black px-1 text-xs font-black text-white">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
             </div>
           </div>
         )}
