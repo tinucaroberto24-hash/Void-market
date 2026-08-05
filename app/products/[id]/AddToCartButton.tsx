@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import VoucherWheel, {
   Voucher,
 } from "./VoucherWheel";
@@ -24,18 +28,53 @@ type CartItem = {
   size: string;
   image: string;
   quantity: number;
+  stock?: number;
   voucherId?: string;
   voucherCode?: string;
   discountPercent?: number;
 };
 
+const CART_STORAGE_KEY =
+  "void-market-cart";
+
+function normalizeNumber(
+  value: unknown,
+  fallback = 0
+) {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : Number(value);
+
+  return Number.isFinite(parsed)
+    ? parsed
+    : fallback;
+}
+
 export default function AddToCartButton({
   product,
 }: AddToCartButtonProps) {
+  const safeProductPrice = normalizeNumber(
+    product.price
+  );
+
+  const safeStock = Math.max(
+    0,
+    Math.floor(
+      normalizeNumber(product.stock)
+    )
+  );
+
   const [message, setMessage] =
     useState("");
-  const [appliedVoucher, setAppliedVoucher] =
-    useState<Voucher | null>(null);
+
+  const [quantity, setQuantity] =
+    useState(1);
+
+  const [
+    appliedVoucher,
+    setAppliedVoucher,
+  ] = useState<Voucher | null>(null);
 
   useEffect(() => {
     const savedAppliedVoucher =
@@ -70,20 +109,25 @@ export default function AddToCartButton({
 
   const finalPrice = useMemo(() => {
     if (!appliedVoucher) {
-      return product.price;
+      return safeProductPrice;
     }
 
     return Number(
       (
-        product.price *
+        safeProductPrice *
         (1 -
           appliedVoucher.discountPercent /
             100)
       ).toFixed(2)
     );
-  }, [appliedVoucher, product.price]);
+  }, [
+    appliedVoucher,
+    safeProductPrice,
+  ]);
 
-  function applyVoucher(voucher: Voucher) {
+  function applyVoucher(
+    voucher: Voucher
+  ) {
     setAppliedVoucher(voucher);
 
     localStorage.setItem(
@@ -96,53 +140,153 @@ export default function AddToCartButton({
     );
   }
 
+  function decreaseSelectedQuantity() {
+    setQuantity((current) =>
+      Math.max(1, current - 1)
+    );
+  }
+
+  function increaseSelectedQuantity() {
+    setQuantity((current) =>
+      Math.min(safeStock, current + 1)
+    );
+  }
+
   function addToCart() {
     try {
-      const savedCart = localStorage.getItem(
-        "void-market-cart"
-      );
+      if (safeStock <= 0) {
+        setMessage(
+          "Produsul nu mai este în stoc."
+        );
+        return;
+      }
 
-      const cart: CartItem[] = savedCart
-        ? JSON.parse(savedCart)
-        : [];
+      const savedCart =
+        localStorage.getItem(
+          CART_STORAGE_KEY
+        );
 
-      const existingProduct = cart.find(
-        (item) => item.id === product.id
-      );
+      const parsedCart: unknown =
+        savedCart
+          ? JSON.parse(savedCart)
+          : [];
+
+      const cart: CartItem[] =
+        Array.isArray(parsedCart)
+          ? parsedCart.map(
+              (item: CartItem) => ({
+                ...item,
+                price: normalizeNumber(
+                  item.price
+                ),
+                originalPrice:
+                  item.originalPrice ===
+                  undefined
+                    ? undefined
+                    : normalizeNumber(
+                        item.originalPrice
+                      ),
+                quantity: Math.max(
+                  1,
+                  Math.floor(
+                    normalizeNumber(
+                      item.quantity,
+                      1
+                    )
+                  )
+                ),
+                stock:
+                  item.stock === undefined
+                    ? undefined
+                    : Math.max(
+                        0,
+                        Math.floor(
+                          normalizeNumber(
+                            item.stock
+                          )
+                        )
+                      ),
+              })
+            )
+          : [];
+
+      const existingProduct =
+        cart.find(
+          (item) =>
+            item.id === product.id &&
+            item.size === product.size
+        );
 
       if (existingProduct) {
-        if (
-          existingProduct.quantity >=
-          product.stock
-        ) {
+        const nextQuantity =
+          existingProduct.quantity +
+          quantity;
+
+        if (nextQuantity > safeStock) {
+          const availableToAdd =
+            Math.max(
+              0,
+              safeStock -
+                existingProduct.quantity
+            );
+
           setMessage(
-            "Ai adăugat deja tot stocul disponibil."
+            availableToAdd <= 0
+              ? "Ai adăugat deja tot stocul disponibil."
+              : `Mai poți adăuga doar ${availableToAdd} ${
+                  availableToAdd === 1
+                    ? "bucată"
+                    : "bucăți"
+                }.`
           );
           return;
         }
 
-        existingProduct.quantity += 1;
-        existingProduct.price = finalPrice;
+        existingProduct.quantity =
+          nextQuantity;
+
+        existingProduct.price =
+          finalPrice;
+
         existingProduct.originalPrice =
-          product.price;
+          safeProductPrice;
+
+        existingProduct.stock =
+          safeStock;
 
         if (appliedVoucher) {
           existingProduct.voucherId =
             appliedVoucher.id;
+
           existingProduct.voucherCode =
             appliedVoucher.code;
+
           existingProduct.discountPercent =
             appliedVoucher.discountPercent;
+        } else {
+          delete existingProduct.voucherId;
+          delete existingProduct.voucherCode;
+          delete existingProduct.discountPercent;
         }
       } else {
+        if (quantity > safeStock) {
+          setMessage(
+            "Cantitatea selectată depășește stocul disponibil."
+          );
+          return;
+        }
+
         cart.push({
           id: product.id,
           name: product.name,
           price: finalPrice,
-          originalPrice: product.price,
+          originalPrice:
+            safeProductPrice,
           size: product.size,
-          image: product.image ?? "",
-          quantity: 1,
+          image:
+            product.image ?? "",
+          quantity,
+          stock: safeStock,
           voucherId:
             appliedVoucher?.id,
           voucherCode:
@@ -153,7 +297,7 @@ export default function AddToCartButton({
       }
 
       localStorage.setItem(
-        "void-market-cart",
+        CART_STORAGE_KEY,
         JSON.stringify(cart)
       );
 
@@ -163,9 +307,19 @@ export default function AddToCartButton({
 
       setMessage(
         appliedVoucher
-          ? `Produsul a fost adăugat cu reducere de ${appliedVoucher.discountPercent}%.`
-          : "Produsul a fost adăugat în coș."
+          ? `${quantity} ${
+              quantity === 1
+                ? "produs a fost adăugat"
+                : "produse au fost adăugate"
+            } cu reducere de ${appliedVoucher.discountPercent}%.`
+          : `${quantity} ${
+              quantity === 1
+                ? "produs a fost adăugat"
+                : "produse au fost adăugate"
+            } în coș.`
       );
+
+      setQuantity(1);
 
       window.setTimeout(() => {
         setMessage("");
@@ -192,12 +346,15 @@ export default function AddToCartButton({
             </p>
 
             <p className="mt-1 text-xl text-zinc-500 line-through">
-              {product.price} Lei
+              {safeProductPrice} Lei
             </p>
 
             <p className="mt-4 text-sm font-semibold text-green-400">
               Voucher aplicat: -
-              {appliedVoucher.discountPercent}%
+              {
+                appliedVoucher.discountPercent
+              }
+              %
             </p>
 
             <p className="mt-2 text-4xl font-black">
@@ -211,7 +368,7 @@ export default function AddToCartButton({
             </p>
 
             <p className="mt-2 text-4xl font-black">
-              {product.price} Lei
+              {safeProductPrice} Lei
             </p>
           </>
         )}
@@ -219,15 +376,68 @@ export default function AddToCartButton({
 
       <VoucherWheel
         onApply={applyVoucher}
-        appliedVoucher={appliedVoucher}
+        appliedVoucher={
+          appliedVoucher
+        }
       />
+
+      {safeStock > 1 && (
+        <div className="mt-6 flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+          <div>
+            <p className="font-semibold">
+              Cantitate
+            </p>
+
+            <p className="mt-1 text-xs text-zinc-500">
+              Maximum {safeStock} în stoc
+            </p>
+          </div>
+
+          <div className="flex items-center overflow-hidden rounded-xl border border-zinc-700 bg-black">
+            <button
+              type="button"
+              onClick={
+                decreaseSelectedQuantity
+              }
+              disabled={quantity <= 1}
+              className="px-4 py-3 text-xl transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Scade cantitatea"
+            >
+              −
+            </button>
+
+            <span className="min-w-12 px-3 py-3 text-center font-black">
+              {quantity}
+            </span>
+
+            <button
+              type="button"
+              onClick={
+                increaseSelectedQuantity
+              }
+              disabled={
+                quantity >= safeStock
+              }
+              className="px-4 py-3 text-xl transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Crește cantitatea"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
         onClick={addToCart}
-        className="mt-6 w-full rounded-xl bg-white px-8 py-4 text-lg font-bold text-black transition hover:bg-zinc-200"
+        disabled={safeStock <= 0}
+        className="mt-6 w-full rounded-xl bg-white px-8 py-4 text-lg font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
       >
-        Adaugă în coș
+        {safeStock <= 0
+          ? "Stoc epuizat"
+          : quantity === 1
+            ? "Adaugă în coș"
+            : `Adaugă ${quantity} în coș`}
       </button>
 
       {message && (
