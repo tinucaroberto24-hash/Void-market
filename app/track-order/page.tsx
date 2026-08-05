@@ -6,7 +6,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
 type OrderItem = {
@@ -112,8 +111,6 @@ function getStatusMessage(status: string) {
 }
 
 export default function TrackOrderPage() {
-  const searchParams = useSearchParams();
-
   const [email, setEmail] = useState("");
   const [orderId, setOrderId] = useState("");
   const [order, setOrder] =
@@ -125,6 +122,10 @@ export default function TrackOrderPage() {
     useState(false);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(
+      window.location.search
+    );
+
     const urlEmail =
       searchParams.get("email")?.trim() ?? "";
 
@@ -175,7 +176,7 @@ export default function TrackOrderPage() {
         "void-market-last-order"
       );
     }
-  }, [searchParams]);
+  }, []);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
