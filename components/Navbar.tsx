@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import {
+  MouseEvent,
+  useEffect,
+  useState,
+} from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type CartItem = {
@@ -14,19 +18,24 @@ type CartItem = {
 };
 
 export default function Navbar() {
-  const [cartCount, setCartCount] = useState(0);
+  const [cartCount, setCartCount] =
+    useState(0);
+
   const [adminHref, setAdminHref] =
     useState("/admin/login");
+
   const [checkingAdmin, setCheckingAdmin] =
     useState(true);
+
   const [mobileOpen, setMobileOpen] =
     useState(false);
 
   useEffect(() => {
     function updateCartCount() {
-      const savedCart = localStorage.getItem(
-        "void-market-cart"
-      );
+      const savedCart =
+        localStorage.getItem(
+          "void-market-cart"
+        );
 
       if (!savedCart) {
         setCartCount(0);
@@ -122,12 +131,69 @@ export default function Navbar() {
     setMobileOpen(false);
   }
 
+  function scrollToTop(
+    event: MouseEvent<HTMLAnchorElement>
+  ) {
+    if (window.location.pathname !== "/") {
+      closeMobileMenu();
+      return;
+    }
+
+    event.preventDefault();
+
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "smooth",
+    });
+
+    window.history.replaceState(
+      null,
+      "",
+      "/"
+    );
+
+    closeMobileMenu();
+  }
+
+  function scrollToSection(
+    event: MouseEvent<HTMLAnchorElement>,
+    sectionId: string
+  ) {
+    if (window.location.pathname !== "/") {
+      closeMobileMenu();
+      return;
+    }
+
+    event.preventDefault();
+
+    const section =
+      document.getElementById(sectionId);
+
+    if (!section) {
+      return;
+    }
+
+    section.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+
+    window.history.replaceState(
+      null,
+      "",
+      `/#${sectionId}`
+    );
+
+    closeMobileMenu();
+  }
+
   return (
     <nav className="sticky top-0 z-50 border-b border-zinc-800 bg-black/90 text-white backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 md:px-10">
         <Link
           href="/"
-          onClick={closeMobileMenu}
+          onClick={scrollToTop}
           className="text-xl font-bold tracking-[0.25em] md:text-3xl"
         >
           VOID MARKET
@@ -136,18 +202,23 @@ export default function Navbar() {
         <button
           type="button"
           onClick={() =>
-            setMobileOpen((current) => !current)
+            setMobileOpen(
+              (current) => !current
+            )
           }
           className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold md:hidden"
           aria-label="Deschide meniul"
           aria-expanded={mobileOpen}
         >
-          {mobileOpen ? "Închide" : "Meniu"}
+          {mobileOpen
+            ? "Închide"
+            : "Meniu"}
         </button>
 
         <div className="hidden items-center gap-7 text-sm lg:flex lg:text-base">
           <Link
             href="/"
+            onClick={scrollToTop}
             className="transition hover:text-zinc-400"
           >
             Acasă
@@ -155,6 +226,12 @@ export default function Navbar() {
 
           <Link
             href="/#magazin"
+            onClick={(event) =>
+              scrollToSection(
+                event,
+                "magazin"
+              )
+            }
             className="transition hover:text-zinc-400"
           >
             Magazin
@@ -162,6 +239,12 @@ export default function Navbar() {
 
           <Link
             href="/#recenzii"
+            onClick={(event) =>
+              scrollToSection(
+                event,
+                "recenzii"
+              )
+            }
             className="transition hover:text-zinc-400"
           >
             Recenzii
@@ -169,6 +252,12 @@ export default function Navbar() {
 
           <Link
             href="/#contact"
+            onClick={(event) =>
+              scrollToSection(
+                event,
+                "contact"
+              )
+            }
             className="transition hover:text-zinc-400"
           >
             Contact
@@ -210,7 +299,7 @@ export default function Navbar() {
           <div className="flex flex-col gap-3">
             <Link
               href="/"
-              onClick={closeMobileMenu}
+              onClick={scrollToTop}
               className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
             >
               Acasă
@@ -218,7 +307,12 @@ export default function Navbar() {
 
             <Link
               href="/#magazin"
-              onClick={closeMobileMenu}
+              onClick={(event) =>
+                scrollToSection(
+                  event,
+                  "magazin"
+                )
+              }
               className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
             >
               Magazin
@@ -226,7 +320,12 @@ export default function Navbar() {
 
             <Link
               href="/#recenzii"
-              onClick={closeMobileMenu}
+              onClick={(event) =>
+                scrollToSection(
+                  event,
+                  "recenzii"
+                )
+              }
               className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
             >
               Recenzii
@@ -234,7 +333,12 @@ export default function Navbar() {
 
             <Link
               href="/#contact"
-              onClick={closeMobileMenu}
+              onClick={(event) =>
+                scrollToSection(
+                  event,
+                  "contact"
+                )
+              }
               className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
             >
               Contact
