@@ -174,12 +174,12 @@ async function sendOrderConfirmationEmail(
 
   const siteUrl = (
     process.env.NEXT_PUBLIC_SITE_URL ||
-    "https://void-market-store.vercel.app"
+    "https://void-market.com"
   ).replace(/\/$/, "");
 
   const fromEmail =
     process.env.RESEND_FROM_EMAIL ||
-    "VOID MARKET <onboarding@resend.dev>";
+    "VOID MARKET <orders@void-market.com>";
 
   const recipient =
     process.env.RESEND_TEST_EMAIL?.trim() ||
@@ -193,7 +193,11 @@ async function sendOrderConfirmationEmail(
       subject: `Plată confirmată VOID MARKET – ${order.id}`,
       html: buildOrderEmailHtml(
         order,
-        `${siteUrl}/track-order`
+        `${siteUrl}/track-order?id=${encodeURIComponent(
+          order.id
+        )}&email=${encodeURIComponent(
+          order.email
+        )}`
       ),
     },
     {

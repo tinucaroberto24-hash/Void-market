@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import {
   FormEvent,
   useEffect,
   useState,
 } from "react";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
 type OrderItem = {
@@ -38,58 +39,81 @@ type SavedOrder = {
   email?: string;
 };
 
-function formatDate(date: string) {
+function formatDate(value: string) {
   return new Intl.DateTimeFormat("ro-RO", {
     dateStyle: "long",
     timeStyle: "short",
-  }).format(new Date(date));
+  }).format(new Date(value));
 }
 
 function getStatusClasses(status: string) {
-  switch (status) {
-    case "Livrată":
-      return "border-green-800 bg-green-950/40 text-green-300";
+  const normalizedStatus =
+    status.trim().toLowerCase();
 
-    case "Expediată":
-      return "border-purple-800 bg-purple-950/40 text-purple-300";
-
-    case "Pregătită":
-      return "border-blue-800 bg-blue-950/40 text-blue-300";
-
-    case "Confirmată":
-      return "border-cyan-800 bg-cyan-950/40 text-cyan-300";
-
-    case "Anulată":
-      return "border-red-800 bg-red-950/40 text-red-300";
-
-    default:
-      return "border-yellow-800 bg-yellow-950/40 text-yellow-300";
+  if (
+    normalizedStatus.includes("livrat") ||
+    normalizedStatus.includes("finalizat")
+  ) {
+    return "border-green-800 bg-green-950/40 text-green-300";
   }
+
+  if (
+    normalizedStatus.includes("expediat") ||
+    normalizedStatus.includes("curier") ||
+    normalizedStatus.includes("tranzit")
+  ) {
+    return "border-blue-800 bg-blue-950/40 text-blue-300";
+  }
+
+  if (
+    normalizedStatus.includes("anulat") ||
+    normalizedStatus.includes("refuzat")
+  ) {
+    return "border-red-800 bg-red-950/40 text-red-300";
+  }
+
+  return "border-yellow-800 bg-yellow-950/40 text-yellow-300";
 }
 
 function getStatusMessage(status: string) {
-  switch (status) {
-    case "Confirmată":
-      return "Comanda a fost confirmată și urmează să fie pregătită.";
+  const normalizedStatus =
+    status.trim().toLowerCase();
 
-    case "Pregătită":
-      return "Comanda este pregătită pentru expediere.";
-
-    case "Expediată":
-      return "Comanda a fost predată curierului.";
-
-    case "Livrată":
-      return "Comanda a fost livrată cu succes.";
-
-    case "Anulată":
-      return "Această comandă a fost anulată.";
-
-    default:
-      return "Comanda a fost înregistrată și urmează să fie verificată.";
+  if (
+    normalizedStatus.includes("livrat") ||
+    normalizedStatus.includes("finalizat")
+  ) {
+    return "Comanda ta a fost livrată. Îți mulțumim că ai ales VOID MARKET.";
   }
+
+  if (
+    normalizedStatus.includes("expediat") ||
+    normalizedStatus.includes("curier") ||
+    normalizedStatus.includes("tranzit")
+  ) {
+    return "Comanda a fost predată curierului și este în drum spre tine.";
+  }
+
+  if (
+    normalizedStatus.includes("pregăt") ||
+    normalizedStatus.includes("proces")
+  ) {
+    return "Comanda este pregătită pentru expediere.";
+  }
+
+  if (
+    normalizedStatus.includes("anulat") ||
+    normalizedStatus.includes("refuzat")
+  ) {
+    return "Comanda a fost anulată. Pentru detalii, contactează echipa VOID MARKET.";
+  }
+
+  return "Comanda a fost înregistrată și va fi procesată în curând.";
 }
 
 export default function TrackOrderPage() {
+  const searchParams = useSearchParams();
+
   const [email, setEmail] = useState("");
   const [orderId, setOrderId] = useState("");
   const [order, setOrder] =
@@ -101,6 +125,25 @@ export default function TrackOrderPage() {
     useState(false);
 
   useEffect(() => {
+    const urlEmail =
+      searchParams.get("email")?.trim() ?? "";
+
+    const urlOrderId =
+      searchParams.get("id")?.trim() ?? "";
+
+    if (urlEmail) {
+      setEmail(urlEmail);
+    }
+
+    if (urlOrderId) {
+      setOrderId(urlOrderId);
+    }
+
+    if (urlEmail && urlOrderId) {
+      setPrefilled(true);
+      return;
+    }
+
     const savedOrder = localStorage.getItem(
       "void-market-last-order"
     );
@@ -132,7 +175,7 @@ export default function TrackOrderPage() {
         "void-market-last-order"
       );
     }
-  }, []);
+  }, [searchParams]);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
@@ -221,17 +264,17 @@ export default function TrackOrderPage() {
     <main className="min-h-screen bg-black text-white">
       <Navbar />
 
-      <section className="mx-auto max-w-5xl px-6 py-16">
+      <section className="mx-auto max-w-5xl px-5 py-12 sm:px-6 sm:py-16">
         <div className="text-center">
-          <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">
+          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500 sm:text-sm">
             VOID MARKET
           </p>
 
-          <h1 className="mt-4 text-4xl font-black md:text-6xl">
+          <h1 className="mt-4 text-4xl font-black sm:text-5xl md:text-6xl">
             Urmărește comanda
           </h1>
 
-          <p className="mx-auto mt-5 max-w-2xl leading-7 text-zinc-400">
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-zinc-400 sm:text-base">
             Introdu emailul folosit la comandă și
             ID-ul unic al comenzii pentru a vedea
             statusul actual.
@@ -241,11 +284,11 @@ export default function TrackOrderPage() {
         {!order ? (
           <form
             onSubmit={handleSubmit}
-            className="mx-auto mt-12 max-w-2xl rounded-3xl border border-zinc-800 bg-zinc-950 p-6 md:p-10"
+            className="mx-auto mt-10 max-w-2xl rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:mt-12 sm:p-6 md:p-10"
           >
             {prefilled && (
               <div className="mb-6 rounded-xl border border-green-900 bg-green-950/30 px-4 py-3 text-sm text-green-300">
-                Am completat automat ultima comandă salvată pe acest dispozitiv.
+                Am completat automat datele comenzii.
               </div>
             )}
 
@@ -262,6 +305,7 @@ export default function TrackOrderPage() {
                 }
                 placeholder="email@exemplu.ro"
                 required
+                autoComplete="email"
                 className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
               />
             </label>
@@ -277,16 +321,47 @@ export default function TrackOrderPage() {
                 onChange={(event) =>
                   setOrderId(event.target.value)
                 }
-                placeholder="Exemplu: 7c2f...-..."
+                placeholder="Lipește ID-ul din emailul de confirmare"
                 required
+                autoComplete="off"
                 className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none transition focus:border-white"
               />
-
-              <span className="mt-2 block text-xs text-zinc-600">
-                ID-ul este codul unic primit după
-                plasarea comenzii.
-              </span>
             </label>
+
+            <div className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4 sm:p-5">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl text-black sm:h-12 sm:w-12">
+                  📦
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-white">
+                    Nu găsești ID-ul comenzii?
+                  </h3>
+
+                  <p className="mt-2 text-sm leading-6 text-zinc-400">
+                    Îl găsești în emailul de confirmare
+                    primit de la{" "}
+                    <span className="font-semibold text-white">
+                      VOID MARKET
+                    </span>{" "}
+                    după finalizarea comenzii.
+                  </p>
+
+                  <p className="mt-2 text-sm leading-6 text-zinc-400">
+                    Folosește ID-ul și aceeași adresă de
+                    email cu care ai plasat comanda.
+                  </p>
+
+                  <div className="mt-4 rounded-xl border border-zinc-700 bg-black px-4 py-3 text-xs leading-5 text-zinc-400 sm:text-sm">
+                    Nu vezi mesajul? Verifică și folderul{" "}
+                    <span className="font-semibold text-white">
+                      Spam / Junk
+                    </span>.
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {error && (
               <p className="mt-6 rounded-xl border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-300">
@@ -297,7 +372,7 @@ export default function TrackOrderPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-8 w-full rounded-xl bg-white py-4 text-lg font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-8 w-full rounded-xl bg-white py-4 text-base font-bold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg"
             >
               {loading
                 ? "Se caută comanda..."
