@@ -8,9 +8,14 @@ type CartItem = {
   id: string;
   name: string;
   price: number;
+  originalPrice?: number;
   size: string;
   image: string;
   quantity: number;
+  voucherId?: string;
+  voucherCode?: string;
+  discountPercent?: number;
+  voucherUses?: number;
 };
 
 type PaymentMethod = "cash" | "card";
@@ -310,6 +315,83 @@ const countiesAndCities: Record<string, string[]> = {
 const WEB3FORMS_ACCESS_KEY =
   process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY ?? "";
 
+function normalizeNumber(
+  value: unknown,
+  fallback = 0
+) {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : Number(value);
+
+  return Number.isFinite(parsed)
+    ? parsed
+    : fallback;
+}
+
+function formatPrice(value: number) {
+  return new Intl.NumberFormat(
+    "ro-RO",
+    {
+      minimumFractionDigits:
+        Number.isInteger(value)
+          ? 0
+          : 2,
+      maximumFractionDigits: 2,
+    }
+  ).format(value);
+}
+
+function getCartItemTotal(
+  item: CartItem
+) {
+  const quantity = Math.max(
+    0,
+    normalizeNumber(
+      item.quantity
+    )
+  );
+
+  const discountedQuantity =
+    Math.min(
+      quantity,
+      Math.max(
+        0,
+        normalizeNumber(
+          item.voucherUses
+        )
+      )
+    );
+
+  const regularQuantity =
+    quantity -
+    discountedQuantity;
+
+  const discountedPrice =
+    Math.max(
+      0,
+      normalizeNumber(
+        item.price
+      )
+    );
+
+  const regularPrice =
+    Math.max(
+      0,
+      normalizeNumber(
+        item.originalPrice,
+        discountedPrice
+      )
+    );
+
+  return (
+    discountedQuantity *
+      discountedPrice +
+    regularQuantity *
+      regularPrice
+  );
+}
+
 export default function CheckoutPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [form, setForm] = useState<CheckoutForm>(initialForm);
@@ -326,8 +408,52 @@ export default function CheckoutPage() {
 
     if (savedCart) {
       try {
-        const parsedCart: CartItem[] = JSON.parse(savedCart);
-        setCart(parsedCart);
+        const parsedCart: CartItem[] =
+          JSON.parse(savedCart);
+
+        const normalizedCart =
+          parsedCart.map((item) => ({
+            ...item,
+            price: Math.max(
+              0,
+              normalizeNumber(
+                item.price
+              )
+            ),
+            originalPrice:
+              item.originalPrice ===
+              undefined
+                ? undefined
+                : Math.max(
+                    0,
+                    normalizeNumber(
+                      item.originalPrice
+                    )
+                  ),
+            quantity: Math.max(
+              1,
+              Math.floor(
+                normalizeNumber(
+                  item.quantity,
+                  1
+                )
+              )
+            ),
+            voucherUses:
+              item.voucherUses ===
+              undefined
+                ? undefined
+                : Math.max(
+                    0,
+                    Math.floor(
+                      normalizeNumber(
+                        item.voucherUses
+                      )
+                    )
+                  ),
+          }));
+
+        setCart(normalizedCart);
       } catch {
         localStorage.removeItem("void-market-cart");
       }
@@ -365,12 +491,16 @@ export default function CheckoutPage() {
       : form.city.trim();
 
   const subtotal = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) =>
+      sum + getCartItemTotal(item),
     0
   );
 
-  const transport = cart.length > 0 ? 20 : 0;
-  const total = subtotal + transport;
+  const transport =
+    cart.length > 0 ? 20 : 0;
+
+  const total =
+    subtotal + transport;
 
   function validateForm() {
     if (!form.firstName.trim()) {
@@ -457,7 +587,9 @@ export default function CheckoutPage() {
           `${item.name}
 Mărime: ${item.size}
 Cantitate: ${item.quantity}
-Preț: ${item.price} Lei`
+Preț total: ${formatPrice(
+            getCartItemTotal(item)
+          )} Lei`
       )
       .join("\n\n");
 
@@ -482,9 +614,9 @@ PLATĂ
 Metodă: ${paymentLabel}
 
 SUMAR
-Subtotal: ${subtotal} Lei
-Transport: ${transport} Lei
-Total: ${total} Lei
+Subtotal: ${formatPrice(subtotal)} Lei
+Transport: ${formatPrice(transport)} Lei
+Total: ${formatPrice(total)} Lei
 
 OBSERVAȚII
 ${form.notes || "Fără observații"}
@@ -511,9 +643,9 @@ ${form.notes || "Fără observații"}
           city: selectedCity,
           delivery_address: getDeliveryAddress(),
           payment_method: paymentLabel,
-          subtotal: `${subtotal} Lei`,
-          transport: `${transport} Lei`,
-          total: `${total} Lei`,
+          subtotal: `${formatPrice(subtotal)} Lei`,
+          transport: `${formatPrice(transport)} Lei`,
+          total: `${formatPrice(total)} Lei`,
           message: orderMessage,
         }),
       }
@@ -552,6 +684,16 @@ ${form.notes || "Fără observații"}
           items: cart.map((item) => ({
             id: item.id,
             quantity: item.quantity,
+            originalPrice:
+              item.originalPrice,
+            voucherId:
+              item.voucherId,
+            voucherCode:
+              item.voucherCode,
+            discountPercent:
+              item.discountPercent,
+            voucherUses:
+              item.voucherUses,
           })),
         }),
       });
@@ -640,6 +782,16 @@ ${form.notes || "Fără observații"}
           items: cart.map((item) => ({
             id: item.id,
             quantity: item.quantity,
+            originalPrice:
+              item.originalPrice,
+            voucherId:
+              item.voucherId,
+            voucherCode:
+              item.voucherCode,
+            discountPercent:
+              item.discountPercent,
+            voucherUses:
+              item.voucherUses,
           })),
         }),
       });
@@ -780,12 +932,21 @@ ${form.notes || "Fără observații"}
               </div>
             )}
 
-            <Link
-              href="/"
-              className="mt-10 inline-block rounded-2xl bg-white px-8 py-4 font-bold text-black transition hover:bg-zinc-200"
-            >
-              Înapoi la pagina principală
-            </Link>
+            <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
+              <a
+                href="mailto:voidmarket.ro@gmail.com?subject=Ajutor%20comandă%20VOID%20MARKET"
+                className="rounded-2xl border border-zinc-700 px-8 py-4 font-bold text-white transition hover:border-white"
+              >
+                Contactează-ne
+              </a>
+
+              <Link
+                href="/"
+                className="rounded-2xl bg-white px-8 py-4 font-bold text-black transition hover:bg-zinc-200"
+              >
+                Înapoi la pagina principală
+              </Link>
+            </div>
           </div>
         </section>
       </main>
@@ -1152,46 +1313,90 @@ ${form.notes || "Fără observații"}
             </h2>
 
             <div className="mt-6 space-y-5">
-              {cart.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex gap-4 border-b border-zinc-800 pb-5"
-                >
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="h-24 w-24 rounded-xl bg-zinc-900 object-contain"
-                  />
+              {cart.map(
+                (item, index) => {
+                  const itemTotal =
+                    getCartItemTotal(item);
 
-                  <div>
-                    <h3 className="font-semibold">
-                      {item.name}
-                    </h3>
+                  const regularPrice =
+                    normalizeNumber(
+                      item.originalPrice,
+                      item.price
+                    );
 
-                    <p className="mt-1 text-sm text-zinc-500">
-                      Mărime: {item.size}
-                    </p>
+                  return (
+                    <div
+                      key={`${item.id}-${item.size}-${index}`}
+                      className="flex gap-4 border-b border-zinc-800 pb-5"
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="h-24 w-24 rounded-xl bg-zinc-900 object-contain"
+                      />
 
-                    <p className="mt-2 font-bold">
-                      {item.price} Lei
-                    </p>
-                  </div>
-                </div>
-              ))}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold">
+                          {item.name}
+                        </h3>
+
+                        <p className="mt-1 text-sm text-zinc-500">
+                          Mărime: {item.size}
+                        </p>
+
+                        <p className="mt-1 text-sm text-zinc-500">
+                          Cantitate: {item.quantity}
+                        </p>
+
+                        <p className="mt-2 font-bold">
+                          {formatPrice(
+                            itemTotal
+                          )}{" "}
+                          Lei
+                        </p>
+
+                        {item.discountPercent &&
+                          item.voucherUses ===
+                            1 && (
+                            <p className="mt-1 text-xs leading-5 text-green-400">
+                              Reducerea de{" "}
+                              {
+                                item.discountPercent
+                              }
+                              % se aplică unei
+                              singure bucăți.
+                              {item.quantity >
+                                1 &&
+                                ` Restul rămân la ${formatPrice(
+                                  regularPrice
+                                )} Lei/bucată.`}
+                            </p>
+                          )}
+                      </div>
+                    </div>
+                  );
+                }
+              )}
 
               <div className="flex justify-between text-zinc-400">
                 <span>Subtotal</span>
-                <span>{subtotal} Lei</span>
+                <span>
+                  {formatPrice(subtotal)} Lei
+                </span>
               </div>
 
               <div className="flex justify-between text-zinc-400">
                 <span>Transport</span>
-                <span>{transport} Lei</span>
+                <span>
+                  {formatPrice(transport)} Lei
+                </span>
               </div>
 
               <div className="flex justify-between border-t border-zinc-800 pt-5 text-2xl font-bold">
                 <span>Total</span>
-                <span>{total} Lei</span>
+                <span>
+                  {formatPrice(total)} Lei
+                </span>
               </div>
             </div>
 
@@ -1224,4 +1429,4 @@ ${form.notes || "Fără observații"}
       </section>
     </main>
   );
-}
+  }

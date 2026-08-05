@@ -32,6 +32,7 @@ type CartItem = {
   voucherId?: string;
   voucherCode?: string;
   discountPercent?: number;
+  voucherUses?: number;
 };
 
 const CART_STORAGE_KEY =
@@ -206,6 +207,17 @@ export default function AddToCartButton({
                           )
                         )
                       ),
+                voucherUses:
+                  item.voucherUses === undefined
+                    ? undefined
+                    : Math.max(
+                        0,
+                        Math.floor(
+                          normalizeNumber(
+                            item.voucherUses
+                          )
+                        )
+                      ),
               })
             )
           : [];
@@ -263,10 +275,13 @@ export default function AddToCartButton({
 
           existingProduct.discountPercent =
             appliedVoucher.discountPercent;
+
+          existingProduct.voucherUses = 1;
         } else {
           delete existingProduct.voucherId;
           delete existingProduct.voucherCode;
           delete existingProduct.discountPercent;
+          delete existingProduct.voucherUses;
         }
       } else {
         if (quantity > safeStock) {
@@ -293,6 +308,8 @@ export default function AddToCartButton({
             appliedVoucher?.code,
           discountPercent:
             appliedVoucher?.discountPercent,
+          voucherUses:
+            appliedVoucher ? 1 : 0,
         });
       }
 
@@ -306,24 +323,22 @@ export default function AddToCartButton({
       );
 
       setMessage(
-        appliedVoucher
-          ? `${quantity} ${
-              quantity === 1
-                ? "produs a fost adăugat"
-                : "produse au fost adăugate"
-            } cu reducere de ${appliedVoucher.discountPercent}%.`
-          : `${quantity} ${
-              quantity === 1
-                ? "produs a fost adăugat"
-                : "produse au fost adăugate"
-            } în coș.`
+        appliedVoucher && quantity > 1
+          ? `Produsele au fost adăugate. Reducerea de ${appliedVoucher.discountPercent}% se aplică doar unei singure bucăți.`
+          : appliedVoucher
+            ? `Produsul a fost adăugat cu reducere de ${appliedVoucher.discountPercent}%.`
+            : `${quantity} ${
+                quantity === 1
+                  ? "produs a fost adăugat"
+                  : "produse au fost adăugate"
+              } în coș.`
       );
 
       setQuantity(1);
 
       window.setTimeout(() => {
         setMessage("");
-      }, 3000);
+      }, 5000);
     } catch (error) {
       console.error(
         "Eroare la adăugarea în coș:",

@@ -5,6 +5,10 @@ import { createClient } from "@supabase/supabase-js";
 type CartItemInput = {
   id: string;
   quantity: number;
+  voucherId?: string;
+  voucherCode?: string;
+  discountPercent?: number;
+  voucherUses?: number;
 };
 
 type CheckoutBody = {
@@ -27,15 +31,77 @@ type DatabaseProduct = {
   image: string | null;
 };
 
+type NormalizedItem = {
+  id: string;
+  quantity: number;
+  voucherId?: string;
+  voucherCode?: string;
+  discountPercent: number;
+  voucherUses: number;
+};
+
+const ALLOWED_DISCOUNTS = [
+  5,
+  10,
+  15,
+  20,
+];
+
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+function normalizeNumber(
+  value: unknown,
+  fallback = 0
+) {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : Number(value);
+
+  return Number.isFinite(parsed)
+    ? parsed
+    : fallback;
+}
+
+function calculateItemTotalCents(
+  unitPriceCents: number,
+  quantity: number,
+  discountPercent: number,
+  voucherUses: number
+) {
+  const discountedQuantity =
+    Math.min(
+      quantity,
+      Math.max(0, voucherUses)
+    );
+
+  const regularQuantity =
+    quantity - discountedQuantity;
+
+  const discountedUnitPriceCents =
+    Math.round(
+      unitPriceCents *
+        (1 - discountPercent / 100)
+    );
+
+  return (
+    discountedQuantity *
+      discountedUnitPriceCents +
+    regularQuantity *
+      unitPriceCents
+  );
+}
+
+export async function POST(
+  request: Request
+) {
   try {
     const stripeSecretKey =
       process.env.STRIPE_SECRET_KEY;
 
     const supabaseUrl =
-      process.env.NEXT_PUBLIC_SUPABASE_URL;
+      process.env
+        .NEXT_PUBLIC_SUPABASE_URL;
 
     const supabaseSecretKey =
       process.env.SUPABASE_SECRET_KEY;
@@ -52,7 +118,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!supabaseUrl || !supabaseSecretKey) {
+    if (
+      !supabaseUrl ||
+      !supabaseSecretKey
+    ) {
       return NextResponse.json(
         {
           error:
@@ -64,19 +133,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const stripe = new Stripe(stripeSecretKey);
-
-    const supabaseAdmin = createClient(
-      supabaseUrl,
-      supabaseSecretKey,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-        },
-      }
+    const stripe = new Stripe(
+      stripeSecretKey
     );
+
+    const supabaseAdmin =
+      createClient(
+        supabaseUrl,
+        supabaseSecretKey,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+          },
+        }
+      );
 
     const body: CheckoutBody =
       await request.json();
@@ -128,18 +200,62 @@ export async function POST(request: Request) {
       );
     }
 
-    const normalizedItems = items.map(
-      (item) => ({
-        id: String(item.id),
-        quantity: Number(item.quantity),
-      })
+    const normalizedItems:
+      NormalizedItem[] = items.map(
+      (item) => {
+        const discountPercent =
+          normalizeNumber(
+            item.discountPercent
+          );
+
+        const hasValidDiscount =
+          ALLOWED_DISCOUNTS.includes(
+            discountPercent
+          ) &&
+          Boolean(
+            item.voucherId ||
+              item.voucherCode
+          );
+
+        return {
+          id: String(item.id),
+          quantity: Math.floor(
+            normalizeNumber(
+              item.quantity
+            )
+          ),
+          voucherId:
+            item.voucherId
+              ? String(item.voucherId)
+              : undefined,
+          voucherCode:
+            item.voucherCode
+              ? String(
+                  item.voucherCode
+                )
+              : undefined,
+          discountPercent:
+            hasValidDiscount
+              ? discountPercent
+              : 0,
+          voucherUses:
+            hasValidDiscount &&
+            normalizeNumber(
+              item.voucherUses
+            ) >= 1
+              ? 1
+              : 0,
+        };
+      }
     );
 
     const invalidItem =
       normalizedItems.find(
         (item) =>
           !item.id ||
-          !Number.isInteger(item.quantity) ||
+          !Number.isInteger(
+            item.quantity
+          ) ||
           item.quantity <= 0
       );
 
@@ -191,8 +307,9 @@ export async function POST(request: Request) {
     }
 
     const products =
-      (data as DatabaseProduct[] | null) ??
-      [];
+      (data as
+        | DatabaseProduct[]
+        | null) ?? [];
 
     if (
       products.length !==
@@ -209,14 +326,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const productsById = new Map(
-      products.map((product) => [
-        product.id,
-        product,
-      ])
-    );
+    const productsById =
+      new Map(
+        products.map((product) => [
+          product.id,
+          product,
+        ])
+      );
 
-    for (const item of normalizedItems) {
+    for (
+      const item of normalizedItems
+    ) {
       const product =
         productsById.get(item.id);
 
@@ -253,36 +373,96 @@ export async function POST(request: Request) {
       }
     }
 
-    const stripeLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
-      normalizedItems.map((item) => {
-        const product =
-          productsById.get(item.id)!;
+    /*
+      Fiecare produs este trimis la Stripe ca o singură
+      linie cu totalul pentru întreaga cantitate.
 
-        return {
-          quantity: item.quantity,
+      Cantitatea reală este păstrată în metadata și va fi
+      citită în webhook, astfel încât stocul să scadă corect.
+    */
+    const stripeLineItems:
+      Stripe.Checkout.SessionCreateParams.LineItem[] =
+      normalizedItems.map(
+        (item) => {
+          const product =
+            productsById.get(
+              item.id
+            )!;
 
-          price_data: {
-            currency: "ron",
+          const unitPriceCents =
+            Math.round(
+              normalizeNumber(
+                product.price
+              ) * 100
+            );
 
-            unit_amount: Math.round(
-              product.price * 100
-            ),
+          const itemTotalCents =
+            calculateItemTotalCents(
+              unitPriceCents,
+              item.quantity,
+              item.discountPercent,
+              item.voucherUses
+            );
 
-            product_data: {
-              name: product.name,
+          return {
+            quantity: 1,
 
-              images: product.image
-                ? [product.image]
-                : undefined,
+            price_data: {
+              currency: "ron",
 
-              metadata: {
-                product_id:
-                  product.id,
+              unit_amount:
+                itemTotalCents,
+
+              product_data: {
+                name:
+                  item.quantity > 1
+                    ? `${product.name} × ${item.quantity}`
+                    : product.name,
+
+                images:
+                  product.image
+                    ? [
+                        product.image,
+                      ]
+                    : undefined,
+
+                metadata: {
+                  product_id:
+                    product.id,
+
+                  purchase_quantity:
+                    String(
+                      item.quantity
+                    ),
+
+                  unit_price_cents:
+                    String(
+                      unitPriceCents
+                    ),
+
+                  discount_percent:
+                    String(
+                      item.discountPercent
+                    ),
+
+                  voucher_uses:
+                    String(
+                      item.voucherUses
+                    ),
+
+                  voucher_id:
+                    item.voucherId ??
+                    "",
+
+                  voucher_code:
+                    item.voucherCode ??
+                    "",
+                },
               },
             },
-          },
-        };
-      });
+          };
+        }
+      );
 
     stripeLineItems.push({
       quantity: 1,
@@ -305,62 +485,83 @@ export async function POST(request: Request) {
     });
 
     const checkoutItems =
-      normalizedItems.map((item) => ({
-        id: item.id,
-        quantity: item.quantity,
-      }));
+      normalizedItems.map(
+        (item) => ({
+          id: item.id,
+          quantity:
+            item.quantity,
+          discountPercent:
+            item.discountPercent,
+          voucherUses:
+            item.voucherUses,
+          voucherId:
+            item.voucherId ??
+            "",
+          voucherCode:
+            item.voucherCode ??
+            "",
+        })
+      );
 
     const origin =
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_SITE_URL ||
+      request.headers.get(
+        "origin"
+      ) ||
+      process.env
+        .NEXT_PUBLIC_SITE_URL ||
       "http://localhost:3000";
 
     const session =
-      await stripe.checkout.sessions.create({
-        mode: "payment",
+      await stripe.checkout.sessions.create(
+        {
+          mode: "payment",
 
-        payment_method_types: [
-          "card",
-        ],
+          payment_method_types: [
+            "card",
+          ],
 
-        customer_email:
-          email.trim(),
+          customer_email:
+            email.trim(),
 
-        phone_number_collection: {
-          enabled: true,
-        },
+          phone_number_collection: {
+            enabled: true,
+          },
 
-        line_items:
-          stripeLineItems,
+          line_items:
+            stripeLineItems,
 
-        metadata: {
-          customer_name:
-            `${firstName.trim()} ${lastName.trim()}`,
+          metadata: {
+            customer_name:
+              `${firstName.trim()} ${lastName.trim()}`,
 
-          phone: phone.trim(),
+            phone:
+              phone.trim(),
 
-          county: county.trim(),
+            county:
+              county.trim(),
 
-          city: city.trim(),
+            city:
+              city.trim(),
 
-          delivery_method:
-            deliveryMethod.trim(),
+            delivery_method:
+              deliveryMethod.trim(),
 
-          delivery_address:
-            deliveryAddress.trim(),
+            delivery_address:
+              deliveryAddress.trim(),
 
-          cart_items:
-            JSON.stringify(
-              checkoutItems
-            ),
-        },
+            cart_items:
+              JSON.stringify(
+                checkoutItems
+              ),
+          },
 
-        success_url:
-          `${origin}/succes?session_id={CHECKOUT_SESSION_ID}`,
+          success_url:
+            `${origin}/succes?session_id={CHECKOUT_SESSION_ID}`,
 
-        cancel_url:
-          `${origin}/cancel`,
-      });
+          cancel_url:
+            `${origin}/cancel`,
+        }
+      );
 
     if (!session.url) {
       return NextResponse.json(

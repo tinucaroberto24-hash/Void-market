@@ -18,6 +18,7 @@ type CartItem = {
   voucherId?: string;
   voucherCode?: string;
   discountPercent?: number;
+  voucherUses?: number;
 };
 
 const CART_STORAGE_KEY =
@@ -120,6 +121,17 @@ function normalizeCart(
             ? undefined
             : normalizeNumber(
                 item.discountPercent
+              ),
+        voucherUses:
+          item.voucherUses === undefined
+            ? undefined
+            : Math.max(
+                0,
+                Math.floor(
+                  normalizeNumber(
+                    item.voucherUses
+                  )
+                )
               ),
       };
     })
@@ -327,14 +339,46 @@ export default function CartPage() {
 
   const subtotal =
     cart.reduce(
-      (total, item) =>
-        total +
-        normalizeNumber(
-          item.price
-        ) *
+      (total, item) => {
+        const quantity =
           normalizeNumber(
             item.quantity
-          ),
+          );
+
+        const discountedQuantity =
+          Math.min(
+            quantity,
+            Math.max(
+              0,
+              normalizeNumber(
+                item.voucherUses
+              )
+            )
+          );
+
+        const regularQuantity =
+          quantity -
+          discountedQuantity;
+
+        const discountedPrice =
+          normalizeNumber(
+            item.price
+          );
+
+        const regularPrice =
+          normalizeNumber(
+            item.originalPrice,
+            discountedPrice
+          );
+
+        return (
+          total +
+          discountedQuantity *
+            discountedPrice +
+          regularQuantity *
+            regularPrice
+        );
+      },
       0
     );
 
@@ -407,9 +451,32 @@ export default function CartPage() {
                       item.price
                     );
 
+                  const regularPrice =
+                    normalizeNumber(
+                      item.originalPrice,
+                      itemPrice
+                    );
+
+                  const discountedQuantity =
+                    Math.min(
+                      item.quantity,
+                      Math.max(
+                        0,
+                        normalizeNumber(
+                          item.voucherUses
+                        )
+                      )
+                    );
+
+                  const regularQuantity =
+                    item.quantity -
+                    discountedQuantity;
+
                   const itemTotal =
-                    itemPrice *
-                    item.quantity;
+                    discountedQuantity *
+                      itemPrice +
+                    regularQuantity *
+                      regularPrice;
 
                   return (
                     <article
@@ -465,13 +532,34 @@ export default function CartPage() {
                           {item.discountPercent &&
                             item.originalPrice !==
                               undefined && (
-                              <p className="mt-1 text-sm text-green-400">
-                                Reducere{" "}
-                                {
-                                  item.discountPercent
-                                }
-                                % aplicată
-                              </p>
+                              <>
+                                <p className="mt-1 text-sm text-green-400">
+                                  Reducere{" "}
+                                  {
+                                    item.discountPercent
+                                  }
+                                  % aplicată unei singure bucăți
+                                </p>
+
+                                {item.quantity > 1 && (
+                                  <p className="mt-1 text-xs text-zinc-500">
+                                    Restul de{" "}
+                                    {
+                                      item.quantity - 1
+                                    }{" "}
+                                    {
+                                      item.quantity - 1 === 1
+                                        ? "bucată rămâne"
+                                        : "bucăți rămân"
+                                    }{" "}
+                                    la prețul normal de{" "}
+                                    {formatPrice(
+                                      regularPrice
+                                    )}{" "}
+                                    Lei.
+                                  </p>
+                                )}
+                              </>
                             )}
                         </div>
 
