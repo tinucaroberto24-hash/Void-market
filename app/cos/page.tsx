@@ -50,40 +50,70 @@ export default function CartPage() {
       JSON.stringify(updatedCart)
     );
 
-    window.dispatchEvent(new Event("cart-updated"));
+    window.dispatchEvent(
+      new Event("cart-updated")
+    );
   }
 
-  function increaseQuantity(productId: string) {
-    const updatedCart = cart.map((item) =>
-      item.id === productId
-        ? {
-            ...item,
-            quantity: item.quantity + 1,
-          }
-        : item
+  function increaseQuantity(
+    itemIndex: number
+  ) {
+    const updatedCart = cart.map(
+      (item, index) =>
+        index === itemIndex
+          ? {
+              ...item,
+              quantity: item.quantity + 1,
+            }
+          : item
     );
 
     saveCart(updatedCart);
   }
 
-  function decreaseQuantity(productId: string) {
-    const updatedCart = cart
-      .map((item) =>
-        item.id === productId
+  function decreaseQuantity(
+    itemIndex: number
+  ) {
+    const selectedItem = cart[itemIndex];
+
+    if (!selectedItem) {
+      return;
+    }
+
+    if (selectedItem.quantity <= 1) {
+      const updatedCart = cart.filter(
+        (_item, index) =>
+          index !== itemIndex
+      );
+
+      saveCart(updatedCart);
+      return;
+    }
+
+    const updatedCart = cart.map(
+      (item, index) =>
+        index === itemIndex
           ? {
               ...item,
               quantity: item.quantity - 1,
             }
           : item
-      )
-      .filter((item) => item.quantity > 0);
+    );
 
     saveCart(updatedCart);
   }
 
-  function removeProduct(productId: string) {
+  function removeProduct(
+    itemIndex: number
+  ) {
+    const selectedItem = cart[itemIndex];
+
+    if (!selectedItem) {
+      return;
+    }
+
     const confirmed = window.confirm(
-      "Sigur vrei să elimini produsul din coș?"
+      `Sigur vrei să elimini ${selectedItem.name} din coș?`
     );
 
     if (!confirmed) {
@@ -91,7 +121,8 @@ export default function CartPage() {
     }
 
     const updatedCart = cart.filter(
-      (item) => item.id !== productId
+      (_item, index) =>
+        index !== itemIndex
     );
 
     saveCart(updatedCart);
@@ -110,13 +141,15 @@ export default function CartPage() {
   }
 
   const totalProducts = cart.reduce(
-    (total, item) => total + item.quantity,
+    (total, item) =>
+      total + item.quantity,
     0
   );
 
   const subtotal = cart.reduce(
     (total, item) =>
-      total + item.price * item.quantity,
+      total +
+      item.price * item.quantity,
     0
   );
 
@@ -131,7 +164,7 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black px-6 py-12 text-white">
+    <main className="min-h-screen bg-black px-5 py-10 text-white sm:px-6 sm:py-12">
       <section className="mx-auto max-w-6xl">
         <header className="flex flex-col gap-6 border-b border-zinc-800 pb-8 md:flex-row md:items-center md:justify-between">
           <div>
@@ -179,99 +212,109 @@ export default function CartPage() {
         ) : (
           <div className="mt-12 grid gap-10 lg:grid-cols-[1fr_380px]">
             <div className="space-y-5">
-              {cart.map((item) => (
-                <article
-                  key={item.id}
-                  className="flex flex-col gap-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:flex-row"
-                >
-                  <Link
-                    href={`/products/${item.id}`}
-                    className="flex h-52 w-full items-center justify-center overflow-hidden rounded-2xl bg-black sm:h-44 sm:w-44"
+              {cart.map(
+                (item, itemIndex) => (
+                  <article
+                    key={`${item.id}-${item.size}-${itemIndex}`}
+                    className="flex flex-col gap-5 rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:flex-row"
                   >
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="h-full w-full object-contain"
-                      />
-                    ) : (
-                      <span className="text-sm text-zinc-600">
-                        Fără imagine
-                      </span>
-                    )}
-                  </Link>
-
-                  <div className="flex flex-1 flex-col justify-between">
-                    <div>
-                      <Link
-                        href={`/products/${item.id}`}
-                        className="text-2xl font-bold transition hover:text-zinc-300"
-                      >
-                        {item.name}
-                      </Link>
-
-                      <p className="mt-2 text-zinc-400">
-                        Mărime {item.size}
-                      </p>
-
-                      <p className="mt-3 text-xl font-bold">
-                        {item.price} Lei
-                      </p>
-                    </div>
-
-                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex items-center overflow-hidden rounded-xl border border-zinc-700">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            decreaseQuantity(item.id)
-                          }
-                          className="px-4 py-2 text-xl transition hover:bg-zinc-800"
-                          aria-label="Scade cantitatea"
-                        >
-                          −
-                        </button>
-
-                        <span className="min-w-12 px-3 py-2 text-center font-bold">
-                          {item.quantity}
+                    <Link
+                      href={`/products/${item.id}`}
+                      className="flex h-52 w-full items-center justify-center overflow-hidden rounded-2xl bg-black sm:h-44 sm:w-44"
+                    >
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-sm text-zinc-600">
+                          Fără imagine
                         </span>
+                      )}
+                    </Link>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            increaseQuantity(item.id)
-                          }
-                          className="px-4 py-2 text-xl transition hover:bg-zinc-800"
-                          aria-label="Crește cantitatea"
+                    <div className="flex flex-1 flex-col justify-between">
+                      <div>
+                        <Link
+                          href={`/products/${item.id}`}
+                          className="text-2xl font-bold transition hover:text-zinc-300"
                         >
-                          +
-                        </button>
+                          {item.name}
+                        </Link>
+
+                        <p className="mt-2 text-zinc-400">
+                          Mărime {item.size}
+                        </p>
+
+                        <p className="mt-3 text-xl font-bold">
+                          {item.price} Lei
+                        </p>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeProduct(item.id)
-                        }
-                        className="font-semibold text-red-400 transition hover:text-red-300"
-                      >
-                        Elimină
-                      </button>
-                    </div>
-                  </div>
+                      <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center overflow-hidden rounded-xl border border-zinc-700">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              decreaseQuantity(
+                                itemIndex
+                              )
+                            }
+                            className="px-4 py-2 text-xl transition hover:bg-zinc-800"
+                            aria-label="Scade cantitatea"
+                          >
+                            −
+                          </button>
 
-                  <p className="text-xl font-bold sm:text-right">
-                    {item.price * item.quantity} Lei
-                  </p>
-                </article>
-              ))}
+                          <span className="min-w-12 px-3 py-2 text-center font-bold">
+                            {item.quantity}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              increaseQuantity(
+                                itemIndex
+                              )
+                            }
+                            className="px-4 py-2 text-xl transition hover:bg-zinc-800"
+                            aria-label="Crește cantitatea"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeProduct(
+                              itemIndex
+                            )
+                          }
+                          className="font-semibold text-red-400 transition hover:text-red-300"
+                        >
+                          Elimină produsul
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-xl font-bold sm:text-right">
+                      {item.price *
+                        item.quantity}{" "}
+                      Lei
+                    </p>
+                  </article>
+                )
+              )}
 
               <button
                 type="button"
                 onClick={clearCart}
                 className="rounded-xl border border-red-900 px-5 py-3 font-semibold text-red-400 transition hover:bg-red-950"
               >
-                Golește coșul
+                Golește tot coșul
               </button>
             </div>
 
@@ -288,12 +331,16 @@ export default function CartPage() {
 
                 <div className="flex justify-between text-zinc-400">
                   <span>Subtotal</span>
-                  <span>{subtotal} Lei</span>
+                  <span>
+                    {subtotal} Lei
+                  </span>
                 </div>
 
                 <div className="flex justify-between text-zinc-400">
                   <span>Livrare</span>
-                  <span>Calculată la checkout</span>
+                  <span>
+                    Calculată la checkout
+                  </span>
                 </div>
               </div>
 
