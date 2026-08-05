@@ -31,7 +31,7 @@ export default async function Home() {
   const products: Product[] = data ?? [];
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black text-white">
+    <main className="min-h-screen bg-black text-white">
       <Navbar />
 
       <section className="relative isolate flex min-h-[calc(100svh-81px)] items-center justify-center overflow-hidden px-5 py-16 text-center sm:px-6 md:min-h-[calc(100vh-89px)] md:py-24">
