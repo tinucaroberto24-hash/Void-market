@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import Footer from "@/components/Footer";
 import VoucherFloatingButton from "@/components/VoucherFloatingButton";
 import ScrollToTop from "@/components/ScrollToTop";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    "https://void-market-store.vercel.app"
+    "https://void-market.com"
   ),
 
   title: {
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     title: "VOID MARKET",
     description:
       "Premium streetwear and authentic clothing.",
-    url: "https://void-market-store.vercel.app",
+    url: "https://void-market.com",
     siteName: "VOID MARKET",
     images: [
       {
@@ -52,7 +53,11 @@ export default function RootLayout({
     <html lang="ro">
       <body>
         <ScrollToTop />
+
         {children}
+
+        <Footer />
+
         <VoucherFloatingButton />
       </body>
     </html>
