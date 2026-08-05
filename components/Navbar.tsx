@@ -30,6 +30,9 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] =
     useState(false);
 
+  const [scrolled, setScrolled] =
+    useState(false);
+
   useEffect(() => {
     function updateCartCount() {
       const savedCart =
@@ -84,6 +87,29 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    function handleScroll() {
+      setScrolled(window.scrollY > 16);
+    }
+
+    handleScroll();
+
+    window.addEventListener(
+      "scroll",
+      handleScroll,
+      {
+        passive: true,
+      }
+    );
+
+    return () => {
+      window.removeEventListener(
+        "scroll",
+        handleScroll
+      );
+    };
+  }, []);
+
+  useEffect(() => {
     const supabase = createClient();
 
     async function checkAdminSession() {
@@ -126,6 +152,30 @@ export default function Navbar() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      return;
+    }
+
+    function closeOnResize() {
+      if (window.innerWidth >= 1024) {
+        setMobileOpen(false);
+      }
+    }
+
+    window.addEventListener(
+      "resize",
+      closeOnResize
+    );
+
+    return () => {
+      window.removeEventListener(
+        "resize",
+        closeOnResize
+      );
+    };
+  }, [mobileOpen]);
 
   function closeMobileMenu() {
     setMobileOpen(false);
@@ -189,118 +239,44 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-zinc-800 bg-black/90 text-white backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 md:px-10">
-        <Link
-          href="/"
-          onClick={scrollToTop}
-          className="text-xl font-bold tracking-[0.25em] md:text-3xl"
-        >
-          VOID MARKET
-        </Link>
-
-        <button
-          type="button"
-          onClick={() =>
-            setMobileOpen(
-              (current) => !current
-            )
-          }
-          className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold md:hidden"
-          aria-label="Deschide meniul"
-          aria-expanded={mobileOpen}
-        >
-          {mobileOpen
-            ? "Închide"
-            : "Meniu"}
-        </button>
-
-        <div className="hidden items-center gap-7 text-sm lg:flex lg:text-base">
+    <header className="sticky top-0 z-50 px-3 pt-3 sm:px-4 sm:pt-4">
+      <nav
+        className={`mx-auto max-w-7xl rounded-2xl border text-white transition-all duration-300 ${
+          scrolled
+            ? "border-white/15 bg-black/80 shadow-[0_14px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+            : "border-white/10 bg-black/65 shadow-[0_10px_35px_rgba(0,0,0,0.3)] backdrop-blur-lg"
+        }`}
+      >
+        <div className="flex items-center justify-between px-4 py-3 sm:px-5 md:px-6">
           <Link
             href="/"
             onClick={scrollToTop}
-            className="transition hover:text-zinc-400"
+            className="min-w-0 text-base font-black tracking-[0.18em] transition hover:text-zinc-300 sm:text-lg md:text-2xl md:tracking-[0.22em]"
           >
-            Acasă
+            VOID MARKET
           </Link>
 
-          <Link
-            href="/#magazin"
-            onClick={(event) =>
-              scrollToSection(
-                event,
-                "magazin"
+          <button
+            type="button"
+            onClick={() =>
+              setMobileOpen(
+                (current) => !current
               )
             }
-            className="transition hover:text-zinc-400"
+            className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-semibold transition hover:border-white/40 hover:bg-white/[0.08] lg:hidden"
+            aria-label="Deschide meniul"
+            aria-expanded={mobileOpen}
           >
-            Magazin
-          </Link>
+            {mobileOpen
+              ? "Închide"
+              : "Meniu"}
+          </button>
 
-          <Link
-            href="/#recenzii"
-            onClick={(event) =>
-              scrollToSection(
-                event,
-                "recenzii"
-              )
-            }
-            className="transition hover:text-zinc-400"
-          >
-            Recenzii
-          </Link>
-
-          <Link
-            href="/#contact"
-            onClick={(event) =>
-              scrollToSection(
-                event,
-                "contact"
-              )
-            }
-            className="transition hover:text-zinc-400"
-          >
-            Contact
-          </Link>
-
-          <Link
-            href="/track-order"
-            className="rounded-xl border border-zinc-700 px-4 py-2 font-semibold transition hover:border-white"
-          >
-            Urmărește comanda
-          </Link>
-
-          <Link
-            href={adminHref}
-            className="rounded-xl border border-zinc-800 px-3 py-2 text-xs text-zinc-500 transition hover:border-zinc-600 hover:text-white"
-          >
-            {checkingAdmin
-              ? "Admin..."
-              : "Admin"}
-          </Link>
-
-          <Link
-            href="/cos"
-            className="relative rounded-xl border border-zinc-700 px-4 py-2 transition hover:border-white"
-          >
-            Coș
-
-            {cartCount > 0 && (
-              <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-xs font-bold text-black">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-        </div>
-      </div>
-
-      {mobileOpen && (
-        <div className="border-t border-zinc-800 px-6 py-5 lg:hidden">
-          <div className="flex flex-col gap-3">
+          <div className="hidden items-center gap-1 lg:flex">
             <Link
               href="/"
               onClick={scrollToTop}
-              className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
+              className="rounded-xl px-3 py-2 text-sm text-zinc-300 transition hover:bg-white/[0.06] hover:text-white"
             >
               Acasă
             </Link>
@@ -313,7 +289,7 @@ export default function Navbar() {
                   "magazin"
                 )
               }
-              className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
+              className="rounded-xl px-3 py-2 text-sm text-zinc-300 transition hover:bg-white/[0.06] hover:text-white"
             >
               Magazin
             </Link>
@@ -326,7 +302,7 @@ export default function Navbar() {
                   "recenzii"
                 )
               }
-              className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
+              className="rounded-xl px-3 py-2 text-sm text-zinc-300 transition hover:bg-white/[0.06] hover:text-white"
             >
               Recenzii
             </Link>
@@ -339,23 +315,21 @@ export default function Navbar() {
                   "contact"
                 )
               }
-              className="rounded-xl px-4 py-3 transition hover:bg-zinc-900"
+              className="rounded-xl px-3 py-2 text-sm text-zinc-300 transition hover:bg-white/[0.06] hover:text-white"
             >
               Contact
             </Link>
 
             <Link
               href="/track-order"
-              onClick={closeMobileMenu}
-              className="rounded-xl border border-zinc-700 px-4 py-3 font-semibold transition hover:border-white"
+              className="ml-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-semibold transition hover:border-white/40 hover:bg-white/[0.08]"
             >
               Urmărește comanda
             </Link>
 
             <Link
               href={adminHref}
-              onClick={closeMobileMenu}
-              className="rounded-xl border border-zinc-800 px-4 py-3 text-zinc-500 transition hover:border-zinc-600 hover:text-white"
+              className="ml-1 rounded-xl border border-white/10 px-3 py-2 text-xs text-zinc-500 transition hover:border-white/30 hover:text-white"
             >
               {checkingAdmin
                 ? "Admin..."
@@ -364,20 +338,104 @@ export default function Navbar() {
 
             <Link
               href="/cos"
-              onClick={closeMobileMenu}
-              className="flex items-center justify-between rounded-xl border border-zinc-700 px-4 py-3 transition hover:border-white"
+              className="relative ml-1 rounded-xl bg-white px-4 py-2 text-sm font-bold text-black transition hover:bg-zinc-200"
             >
-              <span>Coș</span>
+              Coș
 
               {cartCount > 0 && (
-                <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-xs font-bold text-black">
+                <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-black bg-white px-1 text-xs font-black text-black">
                   {cartCount}
                 </span>
               )}
             </Link>
           </div>
         </div>
-      )}
-    </nav>
+
+        {mobileOpen && (
+          <div className="border-t border-white/10 px-4 py-4 lg:hidden">
+            <div className="flex flex-col gap-2">
+              <Link
+                href="/"
+                onClick={scrollToTop}
+                className="rounded-xl px-4 py-3 text-zinc-200 transition hover:bg-white/[0.06]"
+              >
+                Acasă
+              </Link>
+
+              <Link
+                href="/#magazin"
+                onClick={(event) =>
+                  scrollToSection(
+                    event,
+                    "magazin"
+                  )
+                }
+                className="rounded-xl px-4 py-3 text-zinc-200 transition hover:bg-white/[0.06]"
+              >
+                Magazin
+              </Link>
+
+              <Link
+                href="/#recenzii"
+                onClick={(event) =>
+                  scrollToSection(
+                    event,
+                    "recenzii"
+                  )
+                }
+                className="rounded-xl px-4 py-3 text-zinc-200 transition hover:bg-white/[0.06]"
+              >
+                Recenzii
+              </Link>
+
+              <Link
+                href="/#contact"
+                onClick={(event) =>
+                  scrollToSection(
+                    event,
+                    "contact"
+                  )
+                }
+                className="rounded-xl px-4 py-3 text-zinc-200 transition hover:bg-white/[0.06]"
+              >
+                Contact
+              </Link>
+
+              <Link
+                href="/track-order"
+                onClick={closeMobileMenu}
+                className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 font-semibold transition hover:border-white/40 hover:bg-white/[0.08]"
+              >
+                Urmărește comanda
+              </Link>
+
+              <Link
+                href={adminHref}
+                onClick={closeMobileMenu}
+                className="rounded-xl border border-white/10 px-4 py-3 text-zinc-500 transition hover:border-white/30 hover:text-white"
+              >
+                {checkingAdmin
+                  ? "Admin..."
+                  : "Admin"}
+              </Link>
+
+              <Link
+                href="/cos"
+                onClick={closeMobileMenu}
+                className="flex items-center justify-between rounded-xl bg-white px-4 py-3 font-bold text-black transition hover:bg-zinc-200"
+              >
+                <span>Coș</span>
+
+                {cartCount > 0 && (
+                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-black px-1 text-xs font-black text-white">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            </div>
+          </div>
+        )}
+      </nav>
+    </header>
   );
 }
