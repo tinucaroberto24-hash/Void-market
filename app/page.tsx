@@ -37,7 +37,7 @@ export default async function Home() {
       <section className="relative isolate flex min-h-[calc(100svh-81px)] items-center justify-center overflow-hidden px-5 py-16 text-center sm:px-6 md:min-h-[calc(100vh-89px)] md:py-24">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-[42%] -z-30 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.055] blur-[110px] sm:h-[700px] sm:w-[700px] md:h-[900px] md:w-[900px] md:bg-white/[0.06] md:blur-[150px]"
+          className="pointer-events-none absolute left-1/2 top-[42%] -z-30 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.075] blur-[105px] sm:h-[700px] sm:w-[700px] sm:bg-white/[0.06] md:h-[900px] md:w-[900px] md:blur-[150px]"
         />
 
         <div
@@ -56,7 +56,7 @@ export default async function Home() {
 
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 -z-20 -translate-x-1/2 -translate-y-[56%] select-none text-[11rem] font-black tracking-[-0.12em] text-white/[0.025] sm:text-[17rem] md:text-[24rem] lg:text-[30rem]"
+          className="pointer-events-none absolute left-1/2 top-[43%] -z-20 -translate-x-1/2 -translate-y-1/2 select-none animate-[pulse_8s_ease-in-out_infinite] text-[9rem] font-black leading-none tracking-[-0.12em] text-white/[0.09] sm:top-[45%] sm:text-[15rem] sm:text-white/[0.06] md:top-1/2 md:text-[24rem] md:text-white/[0.035] lg:text-[30rem]"
         >
           VM
         </div>
