@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import EasyboxPicker from "@/components/EasyboxPicker";
 
 type CartItem = {
   id: string;
@@ -471,6 +470,18 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
+    if (
+      form.deliveryMethod !==
+      "sameday_address"
+    ) {
+      updateField(
+        "deliveryMethod",
+        "sameday_address"
+      );
+    }
+  }, [form.deliveryMethod]);
+
+  useEffect(() => {
     if (!success) return;
 
     requestAnimationFrame(() => {
@@ -520,13 +531,7 @@ export default function CheckoutPage() {
     0
   );
 
-  const transport =
-    cart.length > 0
-      ? form.deliveryMethod ===
-        "sameday_easybox"
-        ? 20
-        : 25
-      : 0;
+  const transport = 0;
 
   const total =
     subtotal + transport;
@@ -594,14 +599,6 @@ export default function CheckoutPage() {
       return "Completează adresa de livrare.";
     }
 
-    if (
-      form.deliveryMethod ===
-        "sameday_easybox" &&
-      !form.easyboxName.trim()
-    ) {
-      return "Scrie easybox-ul ales.";
-    }
-
     if (cart.length === 0) {
       return "Coșul este gol.";
     }
@@ -610,13 +607,6 @@ export default function CheckoutPage() {
   }
 
   function getDeliveryAddress() {
-    if (
-      form.deliveryMethod ===
-      "sameday_easybox"
-    ) {
-      return `Easybox ales: ${form.easyboxName.trim()}`;
-    }
-
     return `${form.address.trim()}${
       form.postalCode.trim()
         ? `, Cod poștal: ${form.postalCode.trim()}`
@@ -625,10 +615,7 @@ export default function CheckoutPage() {
   }
 
   const deliveryLabel =
-    form.deliveryMethod ===
-    "sameday_easybox"
-      ? "SAMEDAY easybox"
-      : "SAMEDAY la adresă";
+    "SAMEDAY la adresă";
 
   async function sendOrderEmail(paymentLabel: string) {
     if (!WEB3FORMS_ACCESS_KEY) {
@@ -1155,27 +1142,12 @@ ${form.notes || "Fără observații"}
               </h2>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <label
-                  className={`cursor-pointer rounded-2xl border p-5 transition ${
-                    form.deliveryMethod ===
-                    "sameday_address"
-                      ? "border-white bg-zinc-900"
-                      : "border-zinc-700 hover:border-zinc-500"
-                  }`}
-                >
+                <label className="cursor-pointer rounded-2xl border border-white bg-zinc-900 p-5">
                   <input
                     type="radio"
                     name="delivery"
-                    checked={
-                      form.deliveryMethod ===
-                      "sameday_address"
-                    }
-                    onChange={() =>
-                      updateField(
-                        "deliveryMethod",
-                        "sameday_address"
-                      )
-                    }
+                    checked
+                    readOnly
                   />
 
                   <span className="ml-3 font-semibold">
@@ -1186,46 +1158,38 @@ ${form.notes || "Fără observații"}
                     Livrare direct la adresa completată.
                   </p>
 
-                  <p className="ml-7 mt-3 text-lg font-black">
-                    25 Lei
+                  <p className="ml-7 mt-3 text-lg font-black text-green-400">
+                    Gratuit
                   </p>
                 </label>
 
-                <label
-                  className={`cursor-pointer rounded-2xl border p-5 transition ${
-                    form.deliveryMethod ===
-                    "sameday_easybox"
-                      ? "border-white bg-zinc-900"
-                      : "border-zinc-700 hover:border-zinc-500"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="delivery"
-                    checked={
-                      form.deliveryMethod ===
-                      "sameday_easybox"
-                    }
-                    onChange={() =>
-                      updateField(
-                        "deliveryMethod",
-                        "sameday_easybox"
-                      )
-                    }
-                  />
+                <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5 opacity-60">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-zinc-400">
+                        SAMEDAY easybox
+                      </p>
 
-                  <span className="ml-3 font-semibold">
-                    SAMEDAY easybox
-                  </span>
+                      <p className="mt-2 text-sm leading-6 text-zinc-600">
+                        Disponibil în curând, după activarea plății online.
+                      </p>
+                    </div>
 
-                  <p className="ml-7 mt-2 text-sm text-zinc-500">
-                    Ridicare de la easybox-ul ales.
-                  </p>
+                    <span className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 text-xs font-bold text-zinc-500">
+                      În curând
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-                  <p className="ml-7 mt-3 text-lg font-black">
-                    20 Lei
-                  </p>
-                </label>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-zinc-800 bg-black px-4 py-3 text-sm font-semibold">
+                  ✓ Transport gratuit în România
+                </div>
+
+                <div className="rounded-xl border border-zinc-800 bg-black px-4 py-3 text-sm font-semibold">
+                  ✓ Plată ramburs
+                </div>
               </div>
             </section>
 
@@ -1310,9 +1274,7 @@ ${form.notes || "Fără observații"}
                   </label>
                 )}
 
-                {form.deliveryMethod ===
-                "sameday_address" ? (
-                  <>
+
                     <label className="md:col-span-2">
                       <span className="mb-2 block text-sm text-zinc-400">
                         Adresă completă *
@@ -1356,22 +1318,6 @@ ${form.notes || "Fără observații"}
                         className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
                       />
                     </label>
-                  </>
-                ) : (
-                  <EasyboxPicker
-                    county={form.county}
-                    city={selectedCity}
-                    selectedValue={
-                      form.easyboxName
-                    }
-                    onSelect={(value) =>
-                      updateField(
-                        "easyboxName",
-                        value
-                      )
-                    }
-                  />
-                )}
               </div>
             </section>
 
@@ -1464,11 +1410,17 @@ ${form.notes || "Fără observații"}
                       key={`${item.id}-${item.size}-${index}`}
                       className="flex gap-4 border-b border-zinc-800 pb-5"
                     >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="h-24 w-24 rounded-xl bg-zinc-900 object-contain"
-                      />
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-24 w-24 rounded-xl bg-zinc-900 object-contain"
+                        />
+                      ) : (
+                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-zinc-900 px-2 text-center text-xs text-zinc-500">
+                          Fără imagine
+                        </div>
+                      )}
 
                       <div className="min-w-0 flex-1">
                         <h3 className="font-semibold">
@@ -1522,8 +1474,8 @@ ${form.notes || "Fără observații"}
 
               <div className="flex justify-between text-zinc-400">
                 <span>Transport</span>
-                <span>
-                  {formatPrice(transport)} Lei
+                <span className="font-semibold text-green-400">
+                  Gratuit
                 </span>
               </div>
 
