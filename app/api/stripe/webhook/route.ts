@@ -40,7 +40,32 @@ function escapeHtml(value: string) {
 }
 
 function formatMoney(value: number) {
-  return `${value} Lei`;
+  return `${new Intl.NumberFormat("ro-RO", {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(value)} Lei`;
+}
+
+function parsePositiveInteger(
+  value: string | undefined,
+  fallback: number
+) {
+  const parsed = Number(value);
+
+  if (
+    Number.isInteger(parsed) &&
+    parsed > 0
+  ) {
+    return parsed;
+  }
+
+  return fallback;
+}
+
+function centsToLei(value: number | null) {
+  return Number(
+    ((value ?? 0) / 100).toFixed(2)
+  );
 }
 
 function buildOrderEmailHtml(
@@ -344,12 +369,11 @@ export async function POST(request: Request) {
       const stripeProduct =
         lineItem.price?.product;
 
-      const quantity =
+      const stripeLineQuantity =
         lineItem.quantity ?? 0;
 
-      const lineTotalLei = Math.round(
-        (lineItem.amount_total ?? 0) /
-          100
+      const lineTotalLei = centsToLei(
+        lineItem.amount_total
       );
 
       if (
@@ -371,27 +395,46 @@ export async function POST(request: Request) {
         continue;
       }
 
-      if (quantity <= 0) {
+      const purchaseQuantity =
+        parsePositiveInteger(
+          stripeProduct.metadata
+            .purchase_quantity,
+          stripeLineQuantity
+        );
+
+      if (purchaseQuantity <= 0) {
         continue;
       }
 
-      const unitPriceLei = Math.round(
-        lineTotalLei / quantity
-      );
+      const averageUnitPriceLei =
+        Number(
+          (
+            lineTotalLei /
+            purchaseQuantity
+          ).toFixed(2)
+        );
+
+      const cleanProductName =
+        (
+          stripeProduct.name ||
+          lineItem.description ||
+          "Produs"
+        ).replace(
+          /\s×\s\d+$/,
+          ""
+        );
 
       purchasedItems.push({
         id: productId,
-        quantity,
+        quantity: purchaseQuantity,
       });
 
       orderItems.push({
         id: productId,
-        name:
-          lineItem.description ||
-          stripeProduct.name ||
-          "Produs",
-        quantity,
-        unit_price: unitPriceLei,
+        name: cleanProductName,
+        quantity: purchaseQuantity,
+        unit_price:
+          averageUnitPriceLei,
         total: lineTotalLei,
       });
 
@@ -490,9 +533,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const totalLei = Math.round(
-      (session.amount_total ?? 0) /
-        100
+    const totalLei = centsToLei(
+      session.amount_total
     );
 
     const { error: orderError } =
