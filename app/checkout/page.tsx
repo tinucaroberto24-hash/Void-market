@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import EasyboxPicker from "@/components/EasyboxPicker";
 
 type CartItem = {
   id: string;
@@ -1357,30 +1358,19 @@ ${form.notes || "Fără observații"}
                     </label>
                   </>
                 ) : (
-                  <label className="md:col-span-2">
-                    <span className="mb-2 block text-sm text-zinc-400">
-                      Easybox ales *
-                    </span>
-
-                    <input
-                      type="text"
-                      value={form.easyboxName}
-                      onChange={(event) =>
-                        updateField(
-                          "easyboxName",
-                          event.target.value
-                        )
-                      }
-                      placeholder="Exemplu: easybox Kaufland Bacău, Strada..."
-                      required
-                      className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 outline-none focus:border-white"
-                    />
-
-                    <p className="mt-2 text-xs leading-5 text-zinc-500">
-                      Scrie numele și adresa easybox-ului dorit.
-                      Verifică-l în aplicația SAMEDAY înainte de a plasa comanda.
-                    </p>
-                  </label>
+                  <EasyboxPicker
+                    county={form.county}
+                    city={selectedCity}
+                    selectedValue={
+                      form.easyboxName
+                    }
+                    onSelect={(value) =>
+                      updateField(
+                        "easyboxName",
+                        value
+                      )
+                    }
+                  />
                 )}
               </div>
             </section>
