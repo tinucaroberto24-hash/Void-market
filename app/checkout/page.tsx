@@ -462,6 +462,16 @@ export default function CheckoutPage() {
     setLoaded(true);
   }, []);
 
+  useEffect(() => {
+    if (success) {
+      window.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: "auto",
+      });
+    }
+  }, [success]);
+
   function updateField<K extends keyof CheckoutForm>(
     field: K,
     value: CheckoutForm[K]
@@ -1264,30 +1274,23 @@ ${form.notes || "Fără observații"}
                   </p>
                 </label>
 
-                <label
-                  className={`block cursor-pointer rounded-2xl border p-5 ${
-                    form.paymentMethod === "card"
-                      ? "border-white bg-zinc-900"
-                      : "border-zinc-700"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    checked={form.paymentMethod === "card"}
-                    onChange={() =>
-                      updateField("paymentMethod", "card")
-                    }
-                  />
+                <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5 opacity-60">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <span className="font-semibold text-zinc-400">
+                        Card
+                      </span>
 
-                  <span className="ml-3 font-semibold">
-                    Card
-                  </span>
+                      <p className="mt-2 text-sm text-zinc-600">
+                        Plata cu cardul este indisponibilă momentan.
+                      </p>
+                    </div>
 
-                  <p className="ml-7 mt-2 text-sm text-zinc-500">
-                    Vei fi redirecționat pe pagina securizată Stripe.
-                  </p>
-                </label>
+                    <span className="shrink-0 rounded-full border border-zinc-700 px-3 py-1 text-xs font-bold text-zinc-500">
+                      Indisponibil
+                    </span>
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -1413,8 +1416,6 @@ ${form.notes || "Fără observații"}
             >
               {sending
                 ? "Se procesează..."
-                : form.paymentMethod === "card"
-                ? "Continuă spre plata cu cardul"
                 : "Plasează comanda"}
             </button>
 
@@ -1429,4 +1430,4 @@ ${form.notes || "Fără observații"}
       </section>
     </main>
   );
-  }
+}
