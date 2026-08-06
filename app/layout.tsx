@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import Footer from "@/components/Footer";
 import VoucherFloatingButton from "@/components/VoucherFloatingButton";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -59,6 +60,7 @@ export default function RootLayout({
         <Footer />
 
         <VoucherFloatingButton />
+        <Analytics />
       </body>
     </html>
   );
