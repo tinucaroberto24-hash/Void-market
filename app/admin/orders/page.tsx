@@ -10,6 +10,11 @@ type OrderItem = {
   total: number;
 };
 
+type ProductImage = {
+  id: string;
+  image: string | null;
+};
+
 type Order = {
   id: string;
   created_at: string;
@@ -103,6 +108,44 @@ export default async function AdminOrdersPage() {
   }
 
   const orders: Order[] = data ?? [];
+
+  const productIds = [
+    ...new Set(
+      orders.flatMap((order) =>
+        order.items.map((item) => item.id)
+      )
+    ),
+  ];
+
+  let productImages: ProductImage[] = [];
+
+  if (productIds.length > 0) {
+    const {
+      data: productImagesData,
+      error: productImagesError,
+    } = await supabase
+      .from("products")
+      .select("id, image")
+      .in("id", productIds);
+
+    if (productImagesError) {
+      console.error(
+        "Eroare la încărcarea imaginilor produselor:",
+        productImagesError
+      );
+    } else {
+      productImages =
+        (productImagesData as ProductImage[] | null) ??
+        [];
+    }
+  }
+
+  const imageByProductId = new Map(
+    productImages.map((product) => [
+      product.id,
+      product.image,
+    ])
+  );
 
   const totalRevenue = orders
     .filter((order) => order.status !== "Anulată")
@@ -281,28 +324,51 @@ export default async function AdminOrdersPage() {
                     </h3>
 
                     <div className="mt-4 space-y-4">
-                      {order.items.map((item, index) => (
-                        <div
-                          key={`${order.id}-${item.id}-${index}`}
-                          className="rounded-xl border border-zinc-800 bg-black p-4"
-                        >
-                          <p className="font-semibold">
-                            {item.name}
-                          </p>
+                      {order.items.map((item, index) => {
+                        const productImage =
+                          imageByProductId.get(item.id);
 
-                          <p className="mt-2 text-sm text-zinc-500">
-                            Cantitate: {item.quantity}
-                          </p>
+                        return (
+                          <div
+                            key={`${order.id}-${item.id}-${index}`}
+                            className="flex gap-4 rounded-xl border border-zinc-800 bg-black p-4"
+                          >
+                            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+                              {productImage ? (
+                                <img
+                                  src={productImage}
+                                  alt={item.name}
+                                  className="h-full w-full object-contain"
+                                />
+                              ) : (
+                                <div className="px-2 text-center">
+                                  <p className="text-xs font-bold tracking-widest text-zinc-500">
+                                    VOID
+                                  </p>
 
-                          <p className="mt-1 text-sm text-zinc-500">
-                            Preț: {item.unit_price} Lei
-                          </p>
+                                  <p className="mt-1 text-[10px] text-zinc-700">
+                                    Fără poză
+                                  </p>
+                                </div>
+                              )}
+                            </div>
 
-                          <p className="mt-2 font-bold">
-                            {item.total} Lei
-                          </p>
-                        </div>
-                      ))}
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold">
+                                {item.name}
+                              </p>
+
+                              <p className="mt-2 text-sm text-zinc-500">
+                                {item.unit_price} Lei × {item.quantity}
+                              </p>
+
+                              <p className="mt-2 font-bold">
+                                Total produs: {item.total} Lei
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
